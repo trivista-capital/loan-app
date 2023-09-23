@@ -61,9 +61,6 @@ try
         //app.UseAzureAppConfiguration();
     }
     
-    app.UseSwagger();
-    
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Trivista Loan Management API"));
 
     app.UseHttpsRedirection();
 
