@@ -1,0 +1,9 @@
+name: trivisterloanapplication
+services:
+- name: trivista-loanapp-api
+  project: Trivista.LoanApp.Api/Trivista.LoanApp.Api.csproj
+  bindings:
+    - port: 12345
+  tags:
+    - DEV
+    - STAGING

@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trivista.LoanApp.Api", "Trivista.LoanApp.Api\Trivista.LoanApp.Api.csproj", "{E4FFEC13-4430-4329-8FE0-9D64FAC2B7AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trivista.LoanApp.ApplicationCore", "Trivista.LoanApp.ApplicationCore\Trivista.LoanApp.ApplicationCore.csproj", "{7470C830-49CB-48EB-A167-1190CBB8C64B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{A4E0CB4E-765C-423E-AB32-BAC399AC8728}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{F071984E-A4F9-49E0-9B15-59A03D694DFF}"
+	ProjectSection(SolutionItems) = preProject
+		deploy-ftp.yml = deploy-ftp.yml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trivista.LoanApp.ApplicationCore.UnitTest", "Trivista.LoanApp.ApplicationCore.UnitTest\Trivista.LoanApp.ApplicationCore.UnitTest.csproj", "{5049B2BE-56B2-44D0-AD36-D850EE96ABD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trivista.LoanApp.ApplicationCore.IntegrationTest", "Trivista.LoanApp.ApplicationCore.IntegrationTest\Trivista.LoanApp.ApplicationCore.IntegrationTest.csproj", "{D779FE9E-180A-4D80-9CAB-290BE34FC2F9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{D337A0FB-B423-46CA-B7A7-08926BEF9900}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E4FFEC13-4430-4329-8FE0-9D64FAC2B7AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4FFEC13-4430-4329-8FE0-9D64FAC2B7AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4FFEC13-4430-4329-8FE0-9D64FAC2B7AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4FFEC13-4430-4329-8FE0-9D64FAC2B7AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7470C830-49CB-48EB-A167-1190CBB8C64B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7470C830-49CB-48EB-A167-1190CBB8C64B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7470C830-49CB-48EB-A167-1190CBB8C64B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7470C830-49CB-48EB-A167-1190CBB8C64B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5049B2BE-56B2-44D0-AD36-D850EE96ABD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5049B2BE-56B2-44D0-AD36-D850EE96ABD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5049B2BE-56B2-44D0-AD36-D850EE96ABD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5049B2BE-56B2-44D0-AD36-D850EE96ABD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D779FE9E-180A-4D80-9CAB-290BE34FC2F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D779FE9E-180A-4D80-9CAB-290BE34FC2F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D779FE9E-180A-4D80-9CAB-290BE34FC2F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D779FE9E-180A-4D80-9CAB-290BE34FC2F9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F071984E-A4F9-49E0-9B15-59A03D694DFF} = {A4E0CB4E-765C-423E-AB32-BAC399AC8728}
+	EndGlobalSection
+EndGlobal
