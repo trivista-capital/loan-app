@@ -86,6 +86,7 @@ public sealed record ApproveLoanCommandHandler: IRequestHandler<ApproveLoanComma
                                                   .Include(x=>x.ApprovalWorkflow)
                                                   .ThenInclude(x=>x.ApprovalWorkflowApplicationRole)
                                                   .Include(x=>x.RepaymentSchedules)
+                                                  .Include(x => x.LoanDetails)
                                                   .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
         
         if (loanRequest == null)
@@ -93,13 +94,33 @@ public sealed record ApproveLoanCommandHandler: IRequestHandler<ApproveLoanComma
 
         var roles = loanRequest.ApprovalWorkflow.ApprovalWorkflowApplicationRole.OrderBy(x=>x.Hierarchy).ToList();
         
+        loanRequest.SetInterestRate(request.interestRate).ChangeLoanAmount(request.LoanAmount < 1 ? loanRequest.LoanDetails.LoanAmount : request.LoanAmount);
+            
+        var loan = await _trivistaDbContext.Loan.FirstOrDefaultAsync(x => x.IsDefault, new CancellationToken());
+            
+        if (loan == null)
+            return new Result<Unit>(ExceptionManager.Manage("Repayment Schedule", "Loan not Configured"));
+            
+        var interest = Convert.ToDecimal((loan.InterestRate / 100) * request.LoanAmount);
+            
+        var loanTotalRepaymentAmount = Loan.TotalRepaymentAmount(interest, request.LoanAmount);
+        
         foreach (var role in roles)
         {
             if (!role.IsApproved)
             {
                 if (role.RoleId != Guid.Parse(roleId))
                     return new Result<Unit>(ExceptionManager.Manage("Repayment Schedule", "Unable to approve request, Please notify other approvers"));
-                await SetApproval(roles, role, Guid.Parse(userId), loanRequest, request, cancellationToken, loanRequest.ApprovalWorkflow.Id, _publisher);
+                await SetApproval(roles, 
+                                  role, 
+                                  Guid.Parse(userId), 
+                                  loanRequest, 
+                                  request, 
+                                  cancellationToken, 
+                                  loanRequest.ApprovalWorkflow.Id, 
+                                  _publisher, 
+                                  loanTotalRepaymentAmount,
+                                  interest);
                 break;
             }
             if (role.IsApproved && role.RoleId == Guid.Parse(roleId))
@@ -114,22 +135,12 @@ public sealed record ApproveLoanCommandHandler: IRequestHandler<ApproveLoanComma
     }
     
     private async Task<Result<Unit>> SetApproval(List<ApprovalWorkflowApplicationRole> roles, ApprovalWorkflowApplicationRole role, Guid approvedBy, LoanRequest loanRequest, 
-                                                    ApproveLoanCommand request, CancellationToken cancellationToken, Guid workflowId, IPublisher publisher)
+                                                    ApproveLoanCommand request, CancellationToken cancellationToken, Guid workflowId, IPublisher publisher,
+                                                    decimal loanTotalRepaymentAmount, decimal interest)
     {
         var isLast = ApprovalWorkflowApplicationRole.IsLastApproval(roles, workflowId);
         if (isLast)
         {
-            loanRequest.SetInterestRate(request.interestRate).ChangeLoanAmount(request.LoanAmount < 1 ? loanRequest.LoanDetails.LoanAmount : request.LoanAmount);
-            
-            var loan = await _trivistaDbContext.Loan.FirstOrDefaultAsync(x => x.IsDefault, new CancellationToken());
-            
-            if (loan == null)
-                return new Result<Unit>(ExceptionManager.Manage("Repayment Schedule", "Loan not Configured"));
-            
-            var interest = Convert.ToDecimal((loan.InterestRate / 100) * request.LoanAmount);
-            
-            var loanTotalRepaymentAmount = Loan.TotalRepaymentAmount(interest, request.LoanAmount);
-        
             loanRequest.SetLoanBalance(loanTotalRepaymentAmount);
             
             var repaymentSchedule = RepaymentSchedule.Factory.GenerateLoanSchedule(loanTotalRepaymentAmount,

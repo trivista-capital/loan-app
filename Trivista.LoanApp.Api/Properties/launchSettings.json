@@ -15,7 +15,7 @@
       "launchUrl": "swagger/index.html",
       "applicationUrl": "https://localhost:7104;http://localhost:5101",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Local"
+        "ASPNETCORE_ENVIRONMENT": "Staging"
       },
       "dotnetRunMessages": true
     },
@@ -24,7 +24,7 @@
       "launchBrowser": true,
       "launchUrl": "swagger/index.html",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Local"
+        "ASPNETCORE_ENVIRONMENT": "Staging"
       }
     }
   }

@@ -19,7 +19,8 @@ public sealed class GetCustomersController: ICarterModule
     {
         app.MapGet("/customers", GetCustomersHandler)
             .WithName("Get Customers")
-            .WithTags("Customer");
+            .WithTags("Customer")
+            .RequireCors("AllowSpecificOrigins");
     }
 
     private static async Task<IResult> GetCustomersHandler(IMediator mediator, 
