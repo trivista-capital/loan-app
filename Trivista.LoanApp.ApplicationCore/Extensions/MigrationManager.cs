@@ -16,6 +16,7 @@ public static class MigrationManager
             {
                 try
                 {
+                    var conn = appContext.Database.GetConnectionString();
                     appContext.Database.Migrate();
                 }
                 catch (Exception ex)

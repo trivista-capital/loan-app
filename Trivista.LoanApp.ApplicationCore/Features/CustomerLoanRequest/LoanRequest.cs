@@ -184,9 +184,10 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                 return exceptionResult;
             
             var doesCustomerHaveAnyLoan = await _trivistaDbContext.LoanRequest
+                                                 .AsNoTracking()
                                                  .Where(x => x.CustomerId == request.CustomerId)
                                                  .Select(x => x)
-                                                 .AsNoTracking()
+                
                                                  .FirstOrDefaultAsync(cancellationToken);
 
             if (doesCustomerHaveAnyLoan != null)
@@ -198,14 +199,17 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
             
             
             var customer = await _trivistaDbContext.Customer.FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
+            
             if (customer == null)
                 return new Result<bool>(ExceptionManager.Manage("Customer", "Customer does not exist"));
+            
             customer.SetBvn(request.Bvn).SetDob(request.kycDetails.CustomerDob).SetSex(request.kycDetails.CustomerSex)
                                         .SetOccupation(request.kycDetails.CustomerOccupation).SetPhoneNumber(request.kycDetails.CustomerPhoneNumber)
                                         .SetAddress(request.kycDetails.CustomerAddress).SetCountry(request.kycDetails.CustomerCountry).SetState(request.kycDetails.CustomerState)
                                         .SetCity(request.kycDetails.CustomerCity).SetPostCode(request.kycDetails.CustomerPostalCode).IsRemittaUser(request.IsRemita);
 
-            var defaultLoan = await _trivistaDbContext.Loan.Where(x => x.IsDefault).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
+            var defaultLoan = await _trivistaDbContext.Loan.AsNoTracking().Where(x => x.IsDefault).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
+            
             if(defaultLoan == null)
             {
                 _logger.LogInformation("Unable to process lona request, loan needs to be configured");
@@ -220,10 +224,12 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
 
             var approvalWorkFlowConfiguration = await _trivistaDbContext.ApprovalWorkflowConfiguration
                                                 .FirstOrDefaultAsync(x => x.Action == ApprovalTypes.LoanRequest.ToString(), cancellationToken);
+            
             if (approvalWorkFlowConfiguration == null)
                 return new Result<bool>(ExceptionManager.Manage("Loan Request", "Workflow has not been configured"));
         
             var approvalWorkFlow = ApprovalWorkflow.Factory.Build(approvalWorkFlowConfiguration);
+            
             var approvalConfigurationRoles = await _trivistaDbContext.ApprovalWorkflowApplicationRoleConfiguration
                                                                                     .Where(x => x.ApprovalWorkflowConfiguration.Id == approvalWorkFlowConfiguration.Id)
                                                                                     .Select(x => x)
@@ -232,8 +238,10 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
             {
                 approvalWorkFlow.SetApprovalWorkflowApplicationRole(ApprovalWorkflowApplicationRole.Factory.Build(configRole.RoleId, Guid.Empty, approvalWorkFlow.Id, configRole.Hierarchy));   
             }
+            
             var loanRequest = LoanRequest.Factory.Build(loanRequestId, request.Bvn, customer, approvalWorkFlow, salaryDetails, loanDetails, kycDetails, proofOfAddress, defaultLoan.InterestRate)
                 .SetInterestRate(defaultLoan.InterestRate);
+            
             if (loanRequest == null)
                 return new Result<bool>(ExceptionManager.Manage("Loan Request", "Something happened while building your loan request"));
             
@@ -254,14 +262,17 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                 foreach (var role in approvalConfigurationRoles)
                 {
                     var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == role.RoleId.ToString()).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
-                    _publisher.Publish(new NewLoanRequestNotificationEvent()
+                    if (staff != null)
                     {
-                        To = staff.Email, //get admin email,
-                        AdminName = $"{staff.FirstName} {staff.LastName}", //get admin name,
-                        CustomerName = $"{request.kycDetails.CustomerFirstName} {request.kycDetails.CustomerLastName}",
-                        LoanAmount = request.LoanDetails.LoanAmount,
-                        LoanPurpose = request.LoanDetails.purpose
-                    });   
+                        _publisher.Publish(new NewLoanRequestNotificationEvent()
+                        {
+                            To = staff.Email, //get admin email,
+                            AdminName = $"{staff.FirstName} {staff.LastName}", //get admin name,
+                            CustomerName = $"{request.kycDetails.CustomerFirstName} {request.kycDetails.CustomerLastName}",
+                            LoanAmount = request.LoanDetails.LoanAmount,
+                            LoanPurpose = request.LoanDetails.purpose
+                        });    
+                    }
                 }
                 return true;
             }

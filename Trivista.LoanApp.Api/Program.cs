@@ -15,6 +15,9 @@ Log.Information("Starting up");
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    var environmnt = builder.Environment.EnvironmentName;
+    
     IdentityModelEventSource.ShowPII = true;
     builder.Services.AddControllers().AddJsonOptions(x =>
     {
@@ -49,7 +52,7 @@ try
 
     //Configure the HTTP request pipeline.
     app.MapSwagger();
-    if (app.Environment.IsLocal() || app.Environment.IsDevelopment() || app.Environment.IsStaging())
+    if (app.Environment.IsLocal() || app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
     {
         app.UseSwagger();
         
