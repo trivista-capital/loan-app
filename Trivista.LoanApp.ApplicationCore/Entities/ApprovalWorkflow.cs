@@ -15,6 +15,11 @@ public sealed class ApprovalWorkflow: BaseEntity<Guid>
     public bool IsApproved { get; set; }
     public DateTime DateApproved { get; set; }
     public DateTime DateRejected { get; set; }
+
+    public string ApprovedBy { get; set; }
+
+    public string RejectedBy { get; set; }
+
     public ApprovalWorkflowConfiguration ApprovalWorkflowConfiguration { get; set; }
     public ICollection<ApprovalWorkflowApplicationRole> ApprovalWorkflowApplicationRole { get; set; }
         = new List<ApprovalWorkflowApplicationRole>();
@@ -26,7 +31,7 @@ public sealed class ApprovalWorkflow: BaseEntity<Guid>
         return this;
     }
     
-    public ApprovalWorkflow SetApproval(List<ApprovalWorkflowApplicationRole> roles, ApprovalWorkflowApplicationRole role, Guid approvedBy, LoanRequest loanRequest)
+    public ApprovalWorkflow SetApproval(List<ApprovalWorkflowApplicationRole> roles, ApprovalWorkflowApplicationRole role, string approvedBy, LoanRequest loanRequest)
     {
         var isLast = Trivista.LoanApp.ApplicationCore.Entities.ApprovalWorkflowApplicationRole.IsLastApproval(roles, this.Id);
         if (isLast)
@@ -43,7 +48,7 @@ public sealed class ApprovalWorkflow: BaseEntity<Guid>
         return this;
     }
     
-    public ApprovalWorkflow SetApprovalIfLastApprover(List<ApprovalWorkflowApplicationRole> roles, ApprovalWorkflowApplicationRole role, Guid approvedBy, LoanRequest loanRequest)
+    public ApprovalWorkflow SetApprovalIfLastApprover(List<ApprovalWorkflowApplicationRole> roles, ApprovalWorkflowApplicationRole role, string approvedBy, LoanRequest loanRequest)
     {
         role.Approve(approvedBy);
         IsApproved = true;
@@ -52,10 +57,11 @@ public sealed class ApprovalWorkflow: BaseEntity<Guid>
         return this;
     }
 
-    public ApprovalWorkflow RejectLoan()
+    public ApprovalWorkflow RejectLoan(string rejectedBy)
     {
         this.DateRejected = DateTime.UtcNow;
         this.IsApproved = false;
+        this.RejectedBy = rejectedBy;
         return this;
     }
     

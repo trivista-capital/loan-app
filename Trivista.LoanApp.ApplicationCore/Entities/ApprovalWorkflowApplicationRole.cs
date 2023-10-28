@@ -4,7 +4,7 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
 {
     internal ApprovalWorkflowApplicationRole() { }
 
-    private ApprovalWorkflowApplicationRole(Guid roleId, Guid approvedBy, Guid approvalWorkflowId, int hierarchy)
+    private ApprovalWorkflowApplicationRole(Guid roleId, string approvedBy, Guid approvalWorkflowId, int hierarchy)
     {
         RoleId = roleId;
         ApprovedBy = approvedBy;
@@ -15,7 +15,7 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
         Created = DateTime.UtcNow;
     }
     
-    private ApprovalWorkflowApplicationRole(Guid roleId, Guid rejectedBy, Guid approvalWorkflowId, bool rejection, int hierarchy)
+    private ApprovalWorkflowApplicationRole(Guid roleId, string rejectedBy, Guid approvalWorkflowId, bool rejection, int hierarchy)
     {
         RoleId = roleId;
         RejectedBy = rejectedBy;
@@ -27,8 +27,8 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
     }
     public Guid RoleId { get; private set; }
     public bool IsApproved { get; private set; }
-    public Guid ApprovedBy { get; private set; }
-    public Guid RejectedBy { get; private set; }
+    public string ApprovedBy { get; private set; }
+    public string RejectedBy { get; private set; }
     public DateTime DateApproved { get; private set; }
     public DateTime DateRejected { get; private set; }
     public Guid ApprovalWorkflowId { get; private set; }
@@ -43,13 +43,13 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
             return new ApprovalWorkflowApplicationRole();
         }
         
-        public static ApprovalWorkflowApplicationRole Build(Guid roleId, Guid approvedBy, Guid approvalWorkflowId, int hierarchy)
+        public static ApprovalWorkflowApplicationRole Build(Guid roleId, string approvedBy, Guid approvalWorkflowId, int hierarchy)
         {
             return new ApprovalWorkflowApplicationRole(roleId, approvedBy, approvalWorkflowId, hierarchy);
         }
     }
     
-    public ApprovalWorkflowApplicationRole Approve(Guid approvedBy)
+    public ApprovalWorkflowApplicationRole Approve(string approvedBy)
     {
         this.ApprovedBy = approvedBy;
         this.DateApproved = DateTime.UtcNow;
@@ -59,7 +59,7 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
     
     
     
-    public ApprovalWorkflowApplicationRole Reject(Guid rejectedBy)
+    public ApprovalWorkflowApplicationRole Reject(string rejectedBy)
     {
         this.RejectedBy = rejectedBy;
         this.DateRejected = DateTime.UtcNow;
@@ -73,6 +73,12 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
         return ((totalNumberOfApprovals - 1).Equals(numberOfApprovedRequests)) ? true : false;
     }
     
+    public ApprovalWorkflowApplicationRole SetRejectedBy(string rejectedBy)
+    {
+        this.RejectedBy = rejectedBy;
+        return this;
+    }
+
     protected override void When(object @event)
     {
         throw new NotImplementedException();

@@ -33,4 +33,11 @@ public class TokenManager
         var roleId = currentUser?.Claims?.FirstOrDefault(x => x.Type == "sub").Value;
         return roleId!;
     }
+
+    public string GetEmail()
+    {
+        var currentUser = _httpContextAccessor?.HttpContext?.User;
+        var roleId = currentUser?.Claims?.FirstOrDefault(x => x.Type == "email").Value;
+        return roleId!;
+    }
 }

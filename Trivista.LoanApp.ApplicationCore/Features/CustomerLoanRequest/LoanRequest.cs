@@ -236,7 +236,7 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                                                                                     .ToListAsync(cancellationToken);
             foreach (var configRole in approvalConfigurationRoles)
             {
-                approvalWorkFlow.SetApprovalWorkflowApplicationRole(ApprovalWorkflowApplicationRole.Factory.Build(configRole.RoleId, Guid.Empty, approvalWorkFlow.Id, configRole.Hierarchy));   
+                approvalWorkFlow.SetApprovalWorkflowApplicationRole(ApprovalWorkflowApplicationRole.Factory.Build(configRole.RoleId, "", approvalWorkFlow.Id, configRole.Hierarchy));   
             }
             
             var loanRequest = LoanRequest.Factory.Build(loanRequestId, request.Bvn, customer, approvalWorkFlow, salaryDetails, loanDetails, kycDetails, proofOfAddress, defaultLoan.InterestRate)
