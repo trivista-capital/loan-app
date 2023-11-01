@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RestSharp;
@@ -210,14 +211,17 @@ public sealed class RemittaService: IRemittaService
     private readonly HttpClient _client;
     
     private readonly RemittaOption _remittaOption;
-    
-    public RemittaService(HttpClient client, IOptions<RemittaOption> remittaOption)
+
+    private readonly ILogger<RemittaService> _logger;
+
+    public RemittaService(HttpClient client, IOptions<RemittaOption> remittaOption, ILogger<RemittaService> logger)
     {
         _client = client;
         _remittaOption = remittaOption.Value;
+        _logger = logger;
     }
 
-    public async Task<GetSalaryHistoryResponseDto> SalaryHistory(GetSalaryHistoryRequestDto model, string loanRequestId)
+    public async Task<GetSalaryHistoryResponseDto?> SalaryHistory(GetSalaryHistoryRequestDto model, string loanRequestId)
     {
         var authCode = new Random().Next(1000000, 900009823);
         var hash = ComputeSHA512($"{_remittaOption.APIKey}{loanRequestId}{_remittaOption.ApiToken}");
@@ -240,18 +244,33 @@ public sealed class RemittaService: IRemittaService
         request.AddStringBody(body, DataFormat.Json);
         var jsn = JsonConvert.SerializeObject(model);
         RestResponse response = await client.ExecuteAsync(request);
-        var responseBody = JsonConvert.DeserializeObject<GetSalaryHistoryResponseDto>(response.Content);
-        
-        return responseBody;
+        try
+        {
+            var responseBody = JsonConvert.DeserializeObject<GetSalaryHistoryResponseDto>(response!.Content!);
+
+            return responseBody;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while deserializing SalaryHistory response");
+            return null;
+        }
     }
     
-    public async Task<LoanDisbursementResponseDto> DisburseLoan(LoanDisbursementRequestDto model)
+    public async Task<LoanDisbursementResponseDto?> DisburseLoan(LoanDisbursementRequestDto model)
     {
         var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("loansvc/data/api/v2/payday/post/loan", content);
-        var responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(
-                await response.Content.ReadAsStringAsync());
-        return responseBody;
+        try
+        {
+            var responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(await response.Content.ReadAsStringAsync());
+            return responseBody;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "");
+            return null;
+        }
     }
     
     private static string ComputeSHA512(string input)

@@ -177,7 +177,13 @@ public class RequestLoanCommandValidation : AbstractValidator<RequestLoanCommand
     }
 }
 
-public sealed record RequestLoanCommand(Guid CustomerId, string Bvn, kycDetailsDto kycDetails, LoanDetailsDto LoanDetails, SalaryDetailsDto SalaryDetails, ProofOfAddressDto ProofOfAddressDto, bool IsRemita) : IRequest<Result<bool>>;
+public sealed record RequestLoanCommand(Guid CustomerId, 
+                    string Bvn, 
+                    kycDetailsDto kycDetails, 
+                    LoanDetailsDto LoanDetails, 
+                    SalaryDetailsDto SalaryDetails, 
+                    ProofOfAddressDto ProofOfAddressDto, 
+                    bool IsRemita) : IRequest<Result<bool>>;
 
 public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanCommand, Result<bool>>
 {
