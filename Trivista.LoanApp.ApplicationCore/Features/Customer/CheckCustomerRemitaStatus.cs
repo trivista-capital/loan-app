@@ -74,10 +74,10 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
 
         //Call mbs for banks  
         var banksService = await _payStackService.GetBanks();
-        //var banksService = await _mbsService.SelectActiveRequestBanks();
+        if(banksService == null)
+            return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to retrieve banks at the moment"));
 
-        var bank = banksService.Data.Where(x => x.Name.ToLower() == request.BankName.ToLower()).Select(x=>x).FirstOrDefault();
-        //var bank = banksService.Result.Where(x => x.Name == request.BankName).Select(x=>x).FirstOrDefault();
+        var bank = banksService.Data.Where(x => x.Name.ToLower().Trim() == request.BankName.ToLower().Trim()).Select(x=>x).FirstOrDefault();
         if(bank == null)
             return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to verify customer bank"));
             

@@ -61,9 +61,9 @@ public sealed class LoanRequest: BaseEntity<Guid>
         return this;
     }
 
-    public LoanRequest RejectLoan()
+    public LoanRequest RejectLoan(string rejectedBy)
     {
-        this.ApprovalWorkflow.RejectLoan();
+        this.ApprovalWorkflow.RejectLoan(rejectedBy);
         return this;
     }
     
@@ -113,7 +113,7 @@ public sealed class LoanRequest: BaseEntity<Guid>
         this.LoanApplicationStatus = LoanApplicationStatus.Active;
         return this;
     }
-    
+
     public class Factory
     {
         public static LoanRequest Build(Guid id, string bvn, Customer customer, ApprovalWorkflow approvalWorkflow,

@@ -7,10 +7,19 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Compile Remove="Features\Chat\**" />
+      <Compile Remove="Features\HelpAndResources\**" />
+      <EmbeddedResource Remove="Features\Chat\**" />
+      <EmbeddedResource Remove="Features\HelpAndResources\**" />
+      <EntityDeploy Remove="Features\Chat\**" />
+      <EntityDeploy Remove="Features\HelpAndResources\**" />
+      <None Remove="Features\Chat\**" />
+      <None Remove="Features\HelpAndResources\**" />
+    </ItemGroup>
+
+    <ItemGroup>
       <Folder Include="Data\Migrations" />
       <Folder Include="Events\IntegrationEvents" />
-      <Folder Include="Features\Chat" />
-      <Folder Include="Features\HelpAndResources" />
       <Folder Include="Features\LoanRepayment" />
       <Folder Include="Features\Rewards" />
       <Folder Include="Logging" />

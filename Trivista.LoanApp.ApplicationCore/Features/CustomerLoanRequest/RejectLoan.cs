@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Trivista.LoanApp.ApplicationCore.Commons.Helpers;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Extensions;
 
@@ -42,16 +43,21 @@ public sealed record RejectLoanCommand(Guid Id): IRequest<Result<bool>>;
 public sealed class RejectLoanCommandHandler : IRequestHandler<RejectLoanCommand, Result<bool>>
 {
     private readonly TrivistaDbContext _trivistaDbContext;
-    
-    public RejectLoanCommandHandler(TrivistaDbContext trivistaDbContext)
+
+    private readonly TokenManager _token;
+
+    public RejectLoanCommandHandler(TrivistaDbContext trivistaDbContext, TokenManager token)
     {
         _trivistaDbContext = trivistaDbContext;
+        _token = token;
     }
 
     public async Task<Result<bool>> Handle(RejectLoanCommand request, CancellationToken cancellationToken)
     {
+        var rejectedBy = _token.GetEmail();
+
         var loanRequestFromDb = await _trivistaDbContext.LoanRequest.Include(x=>x.ApprovalWorkflow).FirstOrDefaultAsync(x=>x.Id == request.Id, cancellationToken);
-        loanRequestFromDb.SetRejectionDateLoan().RejectLoan();
+        loanRequestFromDb.SetRejectionDateLoan().RejectLoan(rejectedBy);
         var isLoanRejected = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
         return isLoanRejected > 0 ? true : false;
     }
