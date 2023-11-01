@@ -78,7 +78,7 @@ public static class DependencyInjection
         services.AddHttpClient<IRemittaService, RemittaService>((provider, client) =>
         {
             var serviceProvider = provider.GetService<IOptions<RemittaOption>>(); 
-            client.BaseAddress = new Uri(serviceProvider!.Value.BaseUrl);
+            client.BaseAddress = new Uri(serviceProvider!.Value.BaseApiUrl);
         }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler()
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(15)

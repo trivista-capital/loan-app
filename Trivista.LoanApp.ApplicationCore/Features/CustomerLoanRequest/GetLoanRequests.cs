@@ -230,8 +230,9 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
     {
         LoanRequestsWrapper wrapper = new();
         var roleId = _token.GetRoleId();
-        
-        if(string.IsNullOrEmpty(roleId))
+        var email = _token.GetEmail();
+
+        if (string.IsNullOrEmpty(roleId))
             return new Result<LoanRequestsWrapper>(ExceptionManager.Manage("Loan Request", "Role can not be specified"));
         
         var listOfLoanRequests = new List<GetLoanRequests>();

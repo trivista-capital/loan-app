@@ -225,7 +225,7 @@ public sealed class RemittaService: IRemittaService
         model.AuthorisationChannel = _remittaOption.AuthorisationChannel;
         model.AuthorisationCode = authCode;
 
-        var options = new RestClientOptions("https://remitademo.net")
+        var options = new RestClientOptions(_remittaOption.BaseUrl)
         {
             MaxTimeout = -1,
         };

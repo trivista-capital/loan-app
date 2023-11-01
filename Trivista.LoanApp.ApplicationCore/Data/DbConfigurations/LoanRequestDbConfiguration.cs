@@ -12,6 +12,7 @@ public class LoanRequestDbConfiguration: IEntityTypeConfiguration<LoanRequest>
         builder.Property(x => x.Bvn).IsRequired().HasMaxLength(20).HasColumnType("nvarchar(20)");
         builder.Property(x => x.DateLoanDisbursed).HasColumnType("datetime2(7)");
         builder.Property(x => x.DateLoanPaid).HasColumnType("datetime2(7)");
+        builder.Property(x => x.Interest).HasColumnType("decimal(18, 2)");
         //Kyc details config
         builder.OwnsOne(x => x.kycDetails).Property(x=>x.CustomerFirstName).HasColumnType("nvarchar(100)");
         builder.OwnsOne(x => x.kycDetails).Property(x => x.CustomerMiddleName).HasColumnType("nvarchar(100)");
