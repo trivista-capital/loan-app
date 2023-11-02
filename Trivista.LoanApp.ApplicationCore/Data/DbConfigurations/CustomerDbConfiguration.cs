@@ -4,7 +4,7 @@ using Trivista.LoanApp.ApplicationCore.Entities;
 
 namespace Trivista.LoanApp.ApplicationCore.Data.DbConfigurations;
 
-public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
+public partial class CustomerDbConfiguration : IEntityTypeConfiguration<Customer>
 {
     public void Configure(EntityTypeBuilder<Customer> builder)
     {
@@ -15,7 +15,7 @@ public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
                                                        "Male", "", roleId.ToString(), "Staff");
 
         builder.HasData(customer);
-        
+
         builder.HasKey(x => x.Id);
         builder.Property(x => x.FirstName).IsRequired(false).HasMaxLength(200).HasColumnType("nvarchar(200)");
         builder.Property(x => x.MiddleName).IsRequired(false).HasMaxLength(200).HasColumnType("nvarchar(200)");
@@ -45,9 +45,9 @@ public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
         builder.OwnsOne(x => x.ProfilePicture).Property(x => x.ProfilePictureFileLength).HasColumnType("int");
         builder.OwnsOne(x => x.ProfilePicture).Property(x => x.ProfilePictureFileName).HasColumnType("nvarchar(500)");
         builder.OwnsOne(x => x.ProfilePicture).Property(x => x.ProfilePictureFileType).HasColumnType("nvarchar(100)");
-        
+
         //builder.OwnsOne(x => x.CustomerRemitterInformation, builder => { builder.ToJson();});
-        
+
         //Relationships
         builder.HasMany(x => x.LoanRequests).WithOne(x => x.Customer)
             .HasForeignKey(x => x.CustomerId)

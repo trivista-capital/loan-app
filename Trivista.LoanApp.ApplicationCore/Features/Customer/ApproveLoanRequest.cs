@@ -51,8 +51,6 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
     
     private readonly IRemittaService _remittaService;
 
-    private readonly RemittaOption _remittaOption;
-
     private readonly IMbsService _mbsService;
 
     public ApproveLoanByCustomerCommandHandler(TrivistaDbContext trivistaDbContext, TokenManager token, ILogger<ApproveLoanCommandHandler> logger, IPayStackService payStackService, 
