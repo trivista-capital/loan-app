@@ -29,6 +29,8 @@ public class TrivistaDbContext: DbContext
     public DbSet<Ticket> Ticket { get; set; }
     public DbSet<TicketMessages> TicketMessage { get; set; }
 
+    public DbSet<FailedRemitaDisbursement> FailedRemitaDisbursement { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);

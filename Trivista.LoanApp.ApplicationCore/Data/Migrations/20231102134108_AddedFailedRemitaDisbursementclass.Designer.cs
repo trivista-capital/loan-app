@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 
@@ -11,9 +12,11 @@ using Trivista.LoanApp.ApplicationCore.Data.Context;
 namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
 {
     [DbContext(typeof(TrivistaDbContext))]
-    partial class TrivistaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231102134108_AddedFailedRemitaDisbursementclass")]
+    partial class AddedFailedRemitaDisbursementclass
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,8 +82,8 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ApprovedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
@@ -107,8 +110,8 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RejectedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -127,6 +130,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ApprovedBy")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Created")
@@ -157,6 +161,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RejectedBy")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("RoleId")

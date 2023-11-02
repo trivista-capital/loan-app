@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RestSharp;
 using Trivista.LoanApp.ApplicationCore.Commons.Options;
+using Trivista.LoanApp.ApplicationCore.Entities;
 
 namespace Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
 
@@ -159,23 +160,8 @@ public sealed class LoanDisbursementResponseDto
     [JsonProperty("status")]
     public string Status { get; set; } 
     
-    [JsonProperty("hasData")]
-    public bool HasData { get; set; } 
-    
-    [JsonProperty("responseId")]
-    public string ResponseId { get; set; }
-    
-    [JsonProperty("responseDate")]
-    public string ResponseDate { get; set; }
-    
-    [JsonProperty("requestDate")]
-    public string RequestDate { get; set; }
-    
-    [JsonProperty("responseCode")]
-    public string ResponseCode { get; set; }
-    
-    [JsonProperty("responseMsg")]
-    public string ResponseMsg { get; set; }
+    [JsonProperty("message")]
+    public string Message { get; set; } 
     
     [JsonProperty("data")]
     public LoanDisbursementResponseDataDto Data { get; set; }
@@ -259,23 +245,47 @@ public sealed class RemittaService: IRemittaService
     
     public async Task<LoanDisbursementResponseDto?> DisburseLoan(LoanDisbursementRequestDto model)
     {
-        var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("loansvc/data/api/v2/payday/post/loan", content);
+        LoanDisbursementResponseDto? responseBody = null;
+
+        var loanRequestId = Guid.NewGuid().ToString();
+
+        var authCode = new Random().Next(1000000, 900009823);
+        var hash = ComputeSHA512($"{_remittaOption.APIKey}{loanRequestId}{_remittaOption.ApiToken}");
+
+        model.authorisationChannel = _remittaOption.AuthorisationChannel;
+        model.AuthorisationCode = authCode.ToString();
+
+        var options = new RestClientOptions(_remittaOption.BaseApiUrl)
+        {
+            MaxTimeout = -1,
+        };
+        var client = new RestClient(options);
+        var request = new RestRequest("/v2/payday/post/loan", Method.Post);
+        request.AddHeader("Content-Type", "application/json");
+        request.AddHeader("Api_Key", _remittaOption.APIKey);
+        request.AddHeader("Merchant_id", _remittaOption.MerchantId);
+        request.AddHeader("Request_id", loanRequestId);
+        request.AddHeader("Authorization", $"remitaConsumerKey={_remittaOption.APIKey}, remitaConsumerToken={hash}");
+        var body = JsonConvert.SerializeObject(model);
+        request.AddStringBody(body, DataFormat.Json);
+        var jsn = JsonConvert.SerializeObject(model);
+        RestResponse response = await client.ExecuteAsync(request);
+        var jsonResponse = response!.Content!;
         try
         {
-            var responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(await response.Content.ReadAsStringAsync());
-            return responseBody;
+            responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(jsonResponse);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "");
-            return null;
+            // Log error here
+            throw;
         }
+
+        return responseBody;
     }
     
     private static string ComputeSHA512(string input)
     {
-        StringBuilder sb = new StringBuilder();
         using SHA512 sha512 = SHA512.Create();
         byte[] hashValue = sha512.ComputeHash(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hashValue).ToLower();
