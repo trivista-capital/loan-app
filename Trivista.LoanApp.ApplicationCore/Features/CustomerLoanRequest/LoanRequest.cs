@@ -24,15 +24,31 @@ public sealed class LoanRequestController: ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("/requestLoan", HandleRequestLoan)
-            .WithName("RequestLoan")
-            .WithTags("Loan Request");
+        try
+        {
+            app.MapPost("/requestLoan", HandleRequestLoan)
+           .WithName("RequestLoan")
+           .WithTags("Loan Request");
+           //.RequireAuthorization();
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
     }
     
     private async Task<IResult> HandleRequestLoan(IMediator mediator, [FromBody]RequestLoanCommand model)
     {
-        var result = await mediator.Send(model);
-        return result.ToOk(x => x);
+        try
+        {
+            var result = await mediator.Send(model);
+            return result.ToOk(x => x);
+        }
+        catch (Exception ex)
+        {
+
+            throw;
+        }
     }
 }
 
@@ -161,7 +177,13 @@ public class RequestLoanCommandValidation : AbstractValidator<RequestLoanCommand
     }
 }
 
-public sealed record RequestLoanCommand(Guid CustomerId, string Bvn, kycDetailsDto kycDetails, LoanDetailsDto LoanDetails, SalaryDetailsDto SalaryDetails, ProofOfAddressDto ProofOfAddressDto, bool IsRemita) : IRequest<Result<bool>>;
+public sealed record RequestLoanCommand(Guid CustomerId, 
+                    string Bvn, 
+                    kycDetailsDto kycDetails, 
+                    LoanDetailsDto LoanDetails, 
+                    SalaryDetailsDto SalaryDetails, 
+                    ProofOfAddressDto ProofOfAddressDto, 
+                    bool IsRemita) : IRequest<Result<bool>>;
 
 public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanCommand, Result<bool>>
 {
@@ -192,9 +214,13 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
 
             if (doesCustomerHaveAnyLoan != null)
             {
-                if(doesCustomerHaveAnyLoan!.LoanApplicationStatus == LoanApplicationStatus.Active || doesCustomerHaveAnyLoan!.LoanApplicationStatus == LoanApplicationStatus.Approved
-                   || doesCustomerHaveAnyLoan!.LoanApplicationStatus == LoanApplicationStatus.Pending)
-                    return new Result<bool>(ExceptionManager.Manage("Loan Request", "Customer can not request for loan, while another is pending"));    
+                switch (doesCustomerHaveAnyLoan!.LoanApplicationStatus)
+                {
+                    case LoanApplicationStatus.Active:
+                    case LoanApplicationStatus.Approved:
+                    case LoanApplicationStatus.Pending:
+                        return new Result<bool>(ExceptionManager.Manage("Loan Request", "Customer can not request for loan, while another is pending"));
+                }
             }
             
             
@@ -246,35 +272,43 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                 return new Result<bool>(ExceptionManager.Manage("Loan Request", "Something happened while building your loan request"));
             
             await _trivistaDbContext.LoanRequest.AddAsync(loanRequest, cancellationToken);
-            var savedLoanRequestResponse = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
-            if (savedLoanRequestResponse > 0)
+            try
             {
-                //To customer
-                _publisher.Publish(new LoanRequestedEvent()
+                var savedLoanRequestResponse = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
+                if (savedLoanRequestResponse > 0)
                 {
-                    To = loanRequest?.kycDetails?.CustomerEmail,
-                    Name = $"{loanRequest.kycDetails?.CustomerFirstName} {loanRequest.kycDetails?.CustomerLastName}",
-                    LoanAmount = loanRequest.LoanDetails.LoanAmount,
-                    Purpose = loanRequest.LoanDetails?.purpose
-                });
-
-                //To Admin
-                foreach (var role in approvalConfigurationRoles)
-                {
-                    var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == role.RoleId.ToString()).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
-                    if (staff != null)
+                    //To customer
+                    await _publisher.Publish(new LoanRequestedEvent()
                     {
-                        _publisher.Publish(new NewLoanRequestNotificationEvent()
+                        To = loanRequest!.kycDetails!.CustomerEmail,
+                        Name = $"{loanRequest.kycDetails?.CustomerFirstName} {loanRequest.kycDetails?.CustomerLastName}",
+                        LoanAmount = loanRequest.LoanDetails.LoanAmount,
+                        Purpose = loanRequest!.LoanDetails!.purpose
+                    });
+
+                    //To Admin
+                    foreach (var role in approvalConfigurationRoles)
+                    {
+                        var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == role.RoleId.ToString()).Select(x => x).FirstOrDefaultAsync(cancellationToken);
+                        if (staff != null)
                         {
-                            To = staff.Email, //get admin email,
-                            AdminName = $"{staff.FirstName} {staff.LastName}", //get admin name,
-                            CustomerName = $"{request.kycDetails.CustomerFirstName} {request.kycDetails.CustomerLastName}",
-                            LoanAmount = request.LoanDetails.LoanAmount,
-                            LoanPurpose = request.LoanDetails.purpose
-                        });    
+                            await _publisher.Publish(new NewLoanRequestNotificationEvent()
+                            {
+                                To = staff.Email, //get admin email,
+                                AdminName = $"{staff.FirstName} {staff.LastName}", //get admin name,
+                                CustomerName = $"{request.kycDetails.CustomerFirstName} {request.kycDetails.CustomerLastName}",
+                                LoanAmount = request.LoanDetails.LoanAmount,
+                                LoanPurpose = request.LoanDetails.purpose
+                            });
+                        }
                     }
+                    return true;
                 }
-                return true;
+            }
+            catch (Exception ex)
+            {
+               _logger.LogError(ex, "An error occured while saving loan request");
+               return new Result<bool>(ExceptionManager.Manage("Loan Request", "Something happened while saving loan request"));
             }
             
             return false;

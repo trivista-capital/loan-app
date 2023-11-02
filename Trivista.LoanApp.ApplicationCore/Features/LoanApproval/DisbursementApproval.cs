@@ -83,16 +83,16 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         var validator = new DisbursementApprovalCommandValidation();
         var exceptionResult = await TrivistaValidationException<DisbursementApprovalCommandValidation, DisbursementApprovalCommand>
             .ManageException<Unit>(validator, request, cancellationToken, Unit.Value);
-        
+
         if (!exceptionResult.IsSuccess)
             return exceptionResult;
 
         var approval = await _trivistaDbContext
-                             .DisbursementApproval.Include(x=>x.LoanRequest)
-                             .ThenInclude(x=>x.Customer)
+                             .DisbursementApproval.Include(x => x.LoanRequest)
+                             .ThenInclude(x => x.Customer)
                              .FirstOrDefaultAsync(x => x.Id == request.Command.Id, cancellationToken);
-        
-        if(approval == null)
+
+        if (approval == null)
             return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "No loan to approve"));
 
         var account = await _payStackService.FinalizeTransfer(new FinalTransferRequestDto()
@@ -104,19 +104,19 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         if (account.Status)
             return new Result<Unit>(ExceptionManager.Manage("Loan Approval",
                 account.Message));
-        
+
         approval.SetOtp(request.Command.Otp);
-        
+
         approval.ApproveLoan();
-        
+
         var transaction = Transaction.Factory.Build(Guid.NewGuid(), approval.TransactionReference, approval.LoanRequest.LoanDetails.LoanAmount,
                 "", RepaymentStatus.Unpaid, true, TransactionType.Disbursement, approval.LoanRequest.Id)
             .SetCustomer(approval.LoanRequest.Customer);
-        
+
         var loanRequest = await _trivistaDbContext.LoanRequest
-                            .Include(x=>x.RepaymentSchedules)
-                            .Include(x=>x.ApprovalWorkflow)
-                            .ThenInclude(x=>x.ApprovalWorkflowApplicationRole)
+                            .Include(x => x.RepaymentSchedules)
+                            .Include(x => x.ApprovalWorkflow)
+                            .ThenInclude(x => x.ApprovalWorkflowApplicationRole)
                             .Where(x => x.Id == approval.LoanRequestId)
                             .Select(x => x)
                             .AsSplitQuery()
@@ -125,18 +125,18 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         loanRequest!.SetLoanDisbursedStatus();
 
         _trivistaDbContext.LoanRequest.Update(loanRequest);
-        
+
         await _trivistaDbContext.Transaction.AddAsync(transaction, cancellationToken);
-        
+
         var saveChanges = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
 
         if (saveChanges <= 0)
             return new Result<Unit>(ExceptionManager.Manage("Loan Approval",
                 "Unable to approve loan, please try again later"));
-        
+
         var roleId = loanRequest.ApprovalWorkflow.ApprovalWorkflowApplicationRole.FirstOrDefault()!.RoleId;
-        
-        var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == roleId.ToString()).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
+
+        var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == roleId.ToString()).Select(x => x).FirstOrDefaultAsync(cancellationToken);
 
         await _publisher.Publish(new LoanDisbursedEvent()
         {
@@ -153,6 +153,7 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         {
            _ = await InitiateRemitaDisbursement(_trivistaDbContext, _remittaService, loanRequest);
         });
+
         return Unit.Value;
 
     }
@@ -165,6 +166,7 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         var bank = banksService.Result.Where(x => x.Name == loanRequest.SalaryDetails.BankName).Select(x => x).FirstOrDefault();
         if (bank == null)
             return (new LoanDisbursementResponseDto(), "Unable to validate customer bank, please try again later.");
+
 
         var request = new LoanDisbursementRequestDto()
         {

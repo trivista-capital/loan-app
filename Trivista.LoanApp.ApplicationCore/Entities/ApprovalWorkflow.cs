@@ -16,9 +16,9 @@ public sealed class ApprovalWorkflow: BaseEntity<Guid>
     public DateTime DateApproved { get; set; }
     public DateTime DateRejected { get; set; }
 
-    public string ApprovedBy { get; set; }
+    public string? ApprovedBy { get; set; } = default!;
 
-    public string RejectedBy { get; set; }
+    public string? RejectedBy { get; set; } = default!;
 
     public ApprovalWorkflowConfiguration ApprovalWorkflowConfiguration { get; set; }
     public ICollection<ApprovalWorkflowApplicationRole> ApprovalWorkflowApplicationRole { get; set; }

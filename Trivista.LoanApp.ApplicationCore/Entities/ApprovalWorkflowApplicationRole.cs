@@ -27,8 +27,8 @@ public sealed class ApprovalWorkflowApplicationRole: BaseEntity<Guid>
     }
     public Guid RoleId { get; private set; }
     public bool IsApproved { get; private set; }
-    public string ApprovedBy { get; private set; }
-    public string RejectedBy { get; private set; }
+    public string? ApprovedBy { get; private set; } = default!;
+    public string? RejectedBy { get; private set; } = default!;
     public DateTime DateApproved { get; private set; }
     public DateTime DateRejected { get; private set; }
     public Guid ApprovalWorkflowId { get; private set; }

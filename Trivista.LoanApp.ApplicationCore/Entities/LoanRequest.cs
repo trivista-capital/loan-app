@@ -72,7 +72,13 @@ public sealed class LoanRequest: BaseEntity<Guid>
         this.Interest = interest;
         return this;
     }
-    
+
+    public LoanRequest SetDisbursementStatus(DisbursedLoanStatus status)
+    {
+        this.DisbursedLoanStatus = status;
+        return this;
+    }
+
     public LoanRequest SetLoanStatus(decimal loanBalance)
     {
         if (loanBalance < 1)
