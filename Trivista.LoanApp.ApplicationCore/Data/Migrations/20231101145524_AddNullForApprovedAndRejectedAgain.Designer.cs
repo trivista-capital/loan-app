@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 
@@ -11,9 +12,11 @@ using Trivista.LoanApp.ApplicationCore.Data.Context;
 namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
 {
     [DbContext(typeof(TrivistaDbContext))]
-    partial class TrivistaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231101145524_AddNullForApprovedAndRejectedAgain")]
+    partial class AddNullForApprovedAndRejectedAgain
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,10 +64,10 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         new
                         {
                             Id = new Guid("3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d"),
-                            CreatedOn = new DateTime(2023, 11, 1, 15, 10, 46, 513, DateTimeKind.Utc).AddTicks(7527),
+                            CreatedOn = new DateTime(2023, 11, 1, 14, 55, 24, 217, DateTimeKind.Utc).AddTicks(3610),
                             Description = "Default super admin role",
                             IsDeleted = false,
-                            LastModified = new DateTime(2023, 11, 1, 15, 10, 46, 513, DateTimeKind.Utc).AddTicks(7529),
+                            LastModified = new DateTime(2023, 11, 1, 14, 55, 24, 217, DateTimeKind.Utc).AddTicks(3612),
                             Name = "SuperAdmin"
                         });
                 });
@@ -79,8 +82,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ApprovedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
@@ -107,8 +109,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RejectedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -350,7 +351,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         new
                         {
                             Id = new Guid("363b37a0-c306-4472-a405-4b576334cca0"),
-                            Created = new DateTime(2023, 11, 1, 15, 10, 46, 481, DateTimeKind.Utc).AddTicks(617),
+                            Created = new DateTime(2023, 11, 1, 14, 55, 24, 182, DateTimeKind.Utc).AddTicks(3172),
                             Deleted = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DeletedBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Dob = "",

@@ -1,0 +1,50 @@
+﻿@rootUrl=https://localhost:7104
+
+POST {{rootUrl}}/requestLoan
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IkREREIwNjFBNkFCQTUyRTRBMEY4QjhCRjFDQTY2OUUyIiwidHlwIjoiYXQrand0In0.eyJpc3MiOiJodHRwczovL2JvcnJvdy1lYXNlLWlkZW50aXR5LnRyaXZpc3RhbmcuY29tIiwibmJmIjoxNjk4ODY2ODY2LCJpYXQiOjE2OTg4NjY4NjYsImV4cCI6MTY5ODg3MDQ2NiwiYXVkIjpbInRyYXZpc3RlckFwaSIsInRyYXZpc3RlckFwaUxvYW5BcGkiLCJ0cml2aXN0YUZyb250ZW5kQ2xpZW50IiwiaHR0cHM6Ly9ib3Jyb3ctZWFzZS1pZGVudGl0eS50cml2aXN0YW5nLmNvbS9yZXNvdXJjZXMiXSwic2NvcGUiOlsiZnVsbEFjY2VzcyJdLCJhbXIiOlsicGFzc3dvcmQiXSwiY2xpZW50X2lkIjoiTW9iaWxlQ2xpZW50Iiwic3ViIjoiNTQzZmU4ZjItYjY1ZS00YTIxLTgwODctYmZhZmJiZjQ2YTYyIiwiYXV0aF90aW1lIjoxNjk4ODY2ODY2LCJpZHAiOiJsb2NhbCIsImVtYWlsIjoiZGVtby0xQGRpZ2luZXkuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIlJvbGVOYW1lIjoiQ3VzdG9tZXIiLCJSb2xlSWQiOiIwODM0ZDRmYy1hOTc2LTQ0MjgtYjZmOC1kNDdiODMyZmFkMWEiLCJqdGkiOiIyQjdFNjgyMDU3Q0E4NkFGN0JGNjgyQzZGNThCNjY5MCJ9.BPV3hUbdIpLykaanfnaSc8qtajknjH2zS76ApRH2WhAGTDxMrN4BZLsO5Mkot9laf3604kQeGpojFXvIjoS6Sn3-PcbBsQ_CIO7fpW2w_lRamrpld4gPFmFhI2EFDh2LWvPtQZQZQiCQVH-tCfxZJJkGOrOCwYL3O_9NNOnJitpXKqcIm7f537VtwsKj5E_PYRwU2HvSkOa0CYrforxn7C3fP-m-Rpcu9eo-28W66bzezq6Iw_ebFcHybsNh685lOe1D1d7CKon6I5Cye7jp3IxP1dRDNyVMCuxVESFy9ZN4-EGvaP5YFCOvh2Zr7ys20nsOGR4ctBIXprvsIBzY3w
+
+{
+    "customerId": "543fe8f2-b65e-4a21-8087-bfafbbf46a62",
+    "bvn": "22240379034",
+    "isRemita": true,
+    "kycDetails": {
+        "customerFirstName": "ABDULAZIZ",
+        "customerMiddleName": "",
+        "customerLastName": "MUSTAPHA",
+        "customerEmail": "demo-1@diginey.com",
+        "customerAddress": "Lagos state",
+        "customerCity": "Lekki",
+        "customerState": "Abia",
+        "customerSex": "Male",
+        "customerCountry": "Nigeria",
+        "customerPostalCode": "009383",
+        "customerOccupation": "Student",
+        "customerPhoneNumber": "07039084797",
+        "customerDob": "December 31st 1972"
+    },
+    "salaryDetails": {
+        "companyName": "Borrow Ease",
+        "averageMonthlyNetSalary": 120,
+        "salaryAccountNumber": "1001077457",
+        "bankName": "Keystone Bank",
+        "accountName": "MUSTAPHA MAHMUD ABDULAZIZ",
+        "statementOfAccount": [],
+        "bankCode": "082"
+    },
+    "loanDetails": {
+        "loanAmount": 120,
+        "tenure": 3,
+        "purpose": "Holiday",
+        "loanBalance": 0,
+        "repaymentScheduleType": 0
+    },
+    "proofOfAddressDto": {
+        "proofOFAddressFileName": "",
+        "proofOFAddressFileType": "",
+        "proofOFAddressFileLength": 0,
+        "proofOFAddressFile": ""
+    }
+}
+
+###

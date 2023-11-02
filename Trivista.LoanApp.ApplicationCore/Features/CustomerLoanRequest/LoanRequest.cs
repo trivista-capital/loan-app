@@ -24,15 +24,31 @@ public sealed class LoanRequestController: ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("/requestLoan", HandleRequestLoan)
-            .WithName("RequestLoan")
-            .WithTags("Loan Request");
+        try
+        {
+            app.MapPost("/requestLoan", HandleRequestLoan)
+           .WithName("RequestLoan")
+           .WithTags("Loan Request")
+           .RequireAuthorization();
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
     }
     
     private async Task<IResult> HandleRequestLoan(IMediator mediator, [FromBody]RequestLoanCommand model)
     {
-        var result = await mediator.Send(model);
-        return result.ToOk(x => x);
+        try
+        {
+            var result = await mediator.Send(model);
+            return result.ToOk(x => x);
+        }
+        catch (Exception ex)
+        {
+
+            throw;
+        }
     }
 }
 
@@ -161,7 +177,13 @@ public class RequestLoanCommandValidation : AbstractValidator<RequestLoanCommand
     }
 }
 
-public sealed record RequestLoanCommand(Guid CustomerId, string Bvn, kycDetailsDto kycDetails, LoanDetailsDto LoanDetails, SalaryDetailsDto SalaryDetails, ProofOfAddressDto ProofOfAddressDto, bool IsRemita) : IRequest<Result<bool>>;
+public sealed record RequestLoanCommand(Guid CustomerId, 
+                    string Bvn, 
+                    kycDetailsDto kycDetails, 
+                    LoanDetailsDto LoanDetails, 
+                    SalaryDetailsDto SalaryDetails, 
+                    ProofOfAddressDto ProofOfAddressDto, 
+                    bool IsRemita) : IRequest<Result<bool>>;
 
 public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanCommand, Result<bool>>
 {
@@ -192,10 +214,14 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
 
             if (doesCustomerHaveAnyLoan != null)
             {
-                if(doesCustomerHaveAnyLoan!.LoanApplicationStatus == LoanApplicationStatus.Active || doesCustomerHaveAnyLoan!.LoanApplicationStatus == LoanApplicationStatus.Approved
-                   || doesCustomerHaveAnyLoan!.LoanApplicationStatus == LoanApplicationStatus.Pending)
-                    return new Result<bool>(ExceptionManager.Manage("Loan Request", "Customer can not request for loan, while another is pending"));    
-            }
+                switch (doesCustomerHaveAnyLoan!.LoanApplicationStatus)
+                {
+                    case LoanApplicationStatus.Active:
+                    case LoanApplicationStatus.Approved:
+                    case LoanApplicationStatus.Pending:
+                        return new Result<bool>(ExceptionManager.Manage("Loan Request", "Customer can not request for loan, while another is pending"));
+                }
+        }
             
             
             var customer = await _trivistaDbContext.Customer.FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
@@ -250,12 +276,12 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
             if (savedLoanRequestResponse > 0)
             {
                 //To customer
-                _publisher.Publish(new LoanRequestedEvent()
+                await _publisher.Publish(new LoanRequestedEvent()
                 {
-                    To = loanRequest?.kycDetails?.CustomerEmail,
+                    To = loanRequest!.kycDetails!.CustomerEmail,
                     Name = $"{loanRequest.kycDetails?.CustomerFirstName} {loanRequest.kycDetails?.CustomerLastName}",
                     LoanAmount = loanRequest.LoanDetails.LoanAmount,
-                    Purpose = loanRequest.LoanDetails?.purpose
+                    Purpose = loanRequest!.LoanDetails!.purpose
                 });
 
                 //To Admin
@@ -264,7 +290,7 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                     var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == role.RoleId.ToString()).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
                     if (staff != null)
                     {
-                        _publisher.Publish(new NewLoanRequestNotificationEvent()
+                        await _publisher.Publish(new NewLoanRequestNotificationEvent()
                         {
                             To = staff.Email, //get admin email,
                             AdminName = $"{staff.FirstName} {staff.LastName}", //get admin name,

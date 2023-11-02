@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Exceptions;
 using Trivista.LoanApp.ApplicationCore.Extensions;
@@ -55,14 +56,17 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
 
     private readonly TrivistaDbContext _trivistaDbContext;
 
-    public CheckRemitaStatusHandler(IMbsService mbsService, TrivistaDbContext trivistaDbContext, IRemittaService remittaService, IPayStackService payStackService)
+    private readonly ILogger<CheckRemitaStatusHandler> _logger;
+
+    public CheckRemitaStatusHandler(IMbsService mbsService, TrivistaDbContext trivistaDbContext, IRemittaService remittaService, IPayStackService payStackService, ILogger<CheckRemitaStatusHandler> logger)
     {
         _mbsService = mbsService;
         _trivistaDbContext = trivistaDbContext;
         _remittaService = remittaService;
         _payStackService = payStackService;
+        _logger = logger;
     }
-    
+
     public async Task<Result<bool>> Handle(CheckRemitaStatusQuery request, CancellationToken cancellationToken)
     {
         var validator = new CheckRemitaStatusQueryValidation();
@@ -91,6 +95,12 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
             BankCode = bank.Code,
             Bvn = request.Bvn
         }, Guid.NewGuid().ToString());
+
+        if(remittaMandateResponse == null)
+        {
+            _logger.LogError("Unable to get response from remitta service in CheckRemitaStatusHandler");
+            return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to check customer status"));
+        }
 
         return remittaMandateResponse switch
         {
