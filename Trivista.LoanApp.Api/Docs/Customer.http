@@ -43,8 +43,15 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IkREREIwNjFBNkFCQTUyRTRBMEY4Qj
         "proofOFAddressFileName": "",
         "proofOFAddressFileType": "",
         "proofOFAddressFileLength": 0,
-        "proofOFAddressFile": ""
-    }
+        "proofOFAddressFile":""
+    }
 }
 
 ###
+
+GET {{rootUrl}}/customers?firstName=&lastName&email&remita=true&pageNumber=1&itemsPerPage=10&
+Content-Type: application/json
+
+###
+
+        

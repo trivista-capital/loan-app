@@ -109,7 +109,7 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
                             .AsSplitQuery()
                             .FirstOrDefaultAsync(cancellationToken);
 
-        loanRequest.SetLoanDisbursedStatus();
+        loanRequest!.SetLoanDisbursedStatus();
 
         _trivistaDbContext.LoanRequest.Update(loanRequest);
         
@@ -121,20 +121,21 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
             return new Result<Unit>(ExceptionManager.Manage("Loan Approval",
                 "Unable to approve loan, please try again later"));
         
-        var roleId = loanRequest.ApprovalWorkflow.ApprovalWorkflowApplicationRole.FirstOrDefault().RoleId;
+        var roleId = loanRequest.ApprovalWorkflow.ApprovalWorkflowApplicationRole.FirstOrDefault()!.RoleId;
         
         var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == roleId.ToString()).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
 
         await _publisher.Publish(new LoanDisbursedEvent()
         {
-            AdminName = $"{staff?.FirstName} {staff.LastName}",
-            AdminEmail = staff?.Email,
+            AdminName = $"{staff?.FirstName} {staff!.LastName}",
+            AdminEmail = staff!.Email,
             CustomerName = $"{approval.LoanRequest.Customer.FirstName} {approval.LoanRequest.Customer.LastName}",
             InterestRate = approval.LoanRequest.Interest,
             LoanAmount = approval.LoanRequest.LoanDetails.LoanAmount,
             LoanTenure = approval.LoanRequest.LoanDetails.tenure,
-            RepaymentScheduleType = approval.LoanRequest.RepaymentSchedules.FirstOrDefault().RepaymentType.ToString()
+            RepaymentScheduleType = approval.LoanRequest.RepaymentSchedules.FirstOrDefault()!.RepaymentType.ToString()
         }, cancellationToken);
+
         return Unit.Value;
 
     }

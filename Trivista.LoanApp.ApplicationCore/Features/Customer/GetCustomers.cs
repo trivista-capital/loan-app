@@ -129,7 +129,8 @@ public sealed class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery
         
         if (!string.IsNullOrEmpty(request.Remitta))
         {
-            loanRequestList = loanRequestList.Where(x => x.CustomerRemitterInformation.IsRemittaUser == true);
+            bool isRemittaUser = Convert.ToBoolean(request.Remitta);
+            loanRequestList = loanRequestList.Where(x => x.CustomerRemitterInformation.IsRemittaUser == isRemittaUser);
         }
 
         loanRequestList = loanRequestList.Where(x=>x.UserType == "Customer");

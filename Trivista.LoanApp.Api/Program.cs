@@ -19,6 +19,7 @@ try
     var environmnt = builder.Environment.EnvironmentName;
     
     IdentityModelEventSource.ShowPII = true;
+
     builder.Services.AddControllers().AddJsonOptions(x =>
     {
         // serialize enums as strings in api responses (e.g. Role)
