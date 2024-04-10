@@ -58,7 +58,7 @@ public sealed class TestGetMbsStatementHandler : IRequestHandler<TestGetMbsState
                                     .AsNoTracking()
                                     .FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
         
-        var indicinaResponse = await _indicina.ProcessStatement(new BankStatementRequest()
+        var response = await _indicina.ProcessStatement(new BankStatementRequest()
         {
             Customer = new()
             {
@@ -80,9 +80,9 @@ public sealed class TestGetMbsStatementHandler : IRequestHandler<TestGetMbsState
             }
         });
 
-        if (!string.IsNullOrEmpty(indicinaResponse))
+        if (string.IsNullOrEmpty(response.Data))
         {
-            return indicinaResponse;
+            return response.FailedRequestContent.Message;
         }
         
         return new Result<string>(ExceptionManager.Manage("Statement", "Unable to get statement"));

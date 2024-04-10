@@ -34,6 +34,13 @@ public static class ControllerExtensions
                         IsSuccessful = false,
                         StatusCode = trivistaException._errorCode,
                     });
+                case TrivistaException { _errorCode : 400 } trivistaException:
+                    return Results.BadRequest(new ResponseModel<bool>()
+                    {
+                        ErrorMessage = trivistaException.Message,
+                        IsSuccessful = false,
+                        StatusCode = trivistaException._errorCode,
+                    });
                 case ValidationException validationException:
                 {
                     var validationErrors = validationException.Errors.Select(x => x.ErrorMessage).ToArray();

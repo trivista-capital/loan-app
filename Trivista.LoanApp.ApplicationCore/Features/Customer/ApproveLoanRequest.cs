@@ -51,8 +51,6 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
     
     private readonly IRemittaService _remittaService;
 
-    private readonly RemittaOption _remittaOption;
-
     private readonly IMbsService _mbsService;
 
     public ApproveLoanByCustomerCommandHandler(TrivistaDbContext trivistaDbContext, TokenManager token, ILogger<ApproveLoanCommandHandler> logger, IPayStackService payStackService, 
@@ -86,13 +84,13 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
             return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", "Loan request not found"));
         
         //Call payStack to disburse money in customer account   
-        var banksService = await _mbsService.SelectActiveRequestBanks();
+        // var banksService = await _mbsService.SelectActiveRequestBanks();
+        //
+        // var bank = banksService.Result.Where(x => x.Name == loanRequest.SalaryDetails.BankName).Select(x=>x).FirstOrDefault();
+        // if(bank == null)
+        //     return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", "Unable to verify customer bank"));
 
-        var bank = banksService.Result.Where(x => x.Name == loanRequest.SalaryDetails.BankName).Select(x=>x).FirstOrDefault();
-        if(bank == null)
-            return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", "Unable to verify customer bank"));
-
-        var accountDetails = await _payStackService.ResolveAccount(loanRequest.SalaryDetails.SalaryAccountNumber, bank.SortCode);
+        var accountDetails = await _payStackService.ResolveAccount(loanRequest.SalaryDetails.SalaryAccountNumber, loanRequest.SalaryDetails.BankCode);
         
         if(!accountDetails.Status)
             return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", accountDetails.Message));
@@ -100,7 +98,7 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
         var paySackRecipientResponse = await _payStackService.TransferRecipient(new TransferRecipientRequestDto()
         {
             AccountNumber = accountDetails.Data.AccountNumber,
-            BankCode = bank.SortCode,
+            BankCode = loanRequest.SalaryDetails.BankCode,
             Name = accountDetails.Data.AccountName,
             Currency = "NGN"
         });

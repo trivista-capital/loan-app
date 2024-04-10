@@ -24,8 +24,8 @@ public sealed class GetLoanRequestsController: ICarterModule
     {
         app.MapGet("/getLoanRequests", HandleGetLoanRequests)
             .WithName("GetLoanRequests")
-            .WithTags("Loan Request");
-        //.RequireAuthorization();
+            .WithTags("Loan Request")
+            .RequireAuthorization();
     }
     
     private async Task<IResult> HandleGetLoanRequests(IMediator mediator, [FromQuery]Guid? roleId,
@@ -65,6 +65,10 @@ public sealed record GetLoanRequests
     public GetSalaryDetailsDto SalaryDetails { get; set; }
     public ApprovalWorkflowDto ApprovalWorkFlow { get; set; }
     public DateTime? DateLoanPaid { get; set; }
+    public DateTime? DateCreated { get; set; }
+    public DateTime? DueDate { get; set; }
+
+    public string Statement { get; set; }
 
     public static explicit operator GetLoanRequests(LoanRequest loanRequest)
     {
@@ -77,7 +81,8 @@ public sealed record GetLoanRequests
             InterestRate = loanRequest.Interest,
             CustomerName = $"{loanRequest.kycDetails.CustomerFirstName} {loanRequest.kycDetails.CustomerLastName}",
             LoanApplicationStatus = EnumHelpers.Convert(loanRequest.LoanApplicationStatus),
-            DisbursedLoanStatus = EnumHelpers.Convert(loanRequest.DisbursedLoanStatus)
+            DisbursedLoanStatus = EnumHelpers.Convert(loanRequest.DisbursedLoanStatus),
+            DateCreated = loanRequest.Created
         };
     }
 }
@@ -144,14 +149,6 @@ public sealed record GetSalaryDetailsDto
     public string SalaryAccountNumber { get; set; }
     public string BankName { get; set; }
     public string AccountName { get; set; }
-    
-    // public string AccountStatementFileName { get; set; }
-    //
-    // public string AccountStatementFileType { get; set; }
-    //
-    // public long AccountStatementFileLength { get; set; }
-    //
-    // public byte[] AccountStatementFile { get; set; }
 
     public static explicit operator GetSalaryDetailsDto(SalaryDetails salaryDetails)
     {
@@ -207,8 +204,8 @@ public sealed class ApprovalWorkflowApplicationRoleDto
     public Guid Id { get; set; }
     public Guid RoleId { get; set; }
     public bool IsApproved { get; set; }
-    public Guid ApprovedBy { get; set; }
-    public Guid RejectedBy { get; set; }
+    public string ApprovedBy { get; set; }
+    public string RejectedBy { get; set; }
     public DateTime DateApproved { get; set; }
     public DateTime DateRejected { get; set; }
     public int Hierarchy { get;  set; }
@@ -220,23 +217,6 @@ public class GetLoanRequestsDto
     public LoanApplicationStatus Status { get; set; }
     public string Email { get; set; }
     public int Hierarchy { get; set; }
-    
-    // public static ValueTask<GetLoanRequestsDto?> BindAsync(HttpContext context, ParameterInfo parameter)
-    // {
-    //     var roleId = Guid.Parse(context.Request.Query["RoleId"]);
-    //     string status = context.Request.Query["Status"];
-    //     string email = context.Request.Query["Email"];
-    //     int.TryParse(context.Request.Query["Hierarchy"], out var hierarchy);
-    //     
-    //     var result = new GetLoanRequestsDto
-    //     {
-    //         RoleId = roleId,
-    //         Status = (LoanApplicationStatus) Enum.Parse(typeof(LoanApplicationStatus), status, true),
-    //         Email = email,
-    //         Hierarchy = hierarchy
-    //     };
-    //     return ValueTask.FromResult<GetLoanRequestsDto?>(result);
-    // }
 }
 
 public sealed record GetLoanRequestsQuery(Guid? RoleId, LoanApplicationStatus? Status, string Email, int Hierarchy, int PageNumber, int ItemsPerPage): IRequest<Result<LoanRequestsWrapper>>;
@@ -255,17 +235,19 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
     {
         LoanRequestsWrapper wrapper = new();
         var roleId = _token.GetRoleId();
-        
-        if(string.IsNullOrEmpty(roleId))
+        var email = _token.GetEmail();
+
+        if (string.IsNullOrEmpty(roleId))
             return new Result<LoanRequestsWrapper>(ExceptionManager.Manage("Loan Request", "Role can not be specified"));
         
         var listOfLoanRequests = new List<GetLoanRequests>();
         
         IQueryable<LoanRequest> loanRequestList = Enumerable.Empty<LoanRequest>().AsQueryable();
         
-        loanRequestList = _trivistaDbContext.LoanRequest
+        loanRequestList = _trivistaDbContext.LoanRequest.Include(x => x.Customer)
             .Include(x => x.ApprovalWorkflow)
             .ThenInclude(x => x.ApprovalWorkflowApplicationRole)
+            //.Include(x => x.RepaymentSchedules.OrderBy(x => x.DueDate))
             .OrderByDescending(x => x.Created)
             .AsQueryable();
         
@@ -288,6 +270,7 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
         foreach (var loanRequest in loanRequestList)
         {
             GetLoanRequests loanRequestDto = (GetLoanRequests)loanRequest;
+            loanRequestDto.Statement = loanRequest.Customer.MbsBankStatement;
             loanRequestDto.kycDetails = (GetkycDetailsDto)loanRequest.kycDetails;
             loanRequestDto.LoanDetails = (GetLoanDetailsDto)loanRequest.LoanDetails;
             loanRequestDto.SalaryDetails = (GetSalaryDetailsDto)loanRequest.SalaryDetails;

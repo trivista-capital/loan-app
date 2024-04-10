@@ -19,7 +19,8 @@ public sealed class GetCustomersController: ICarterModule
     {
         app.MapGet("/customers", GetCustomersHandler)
             .WithName("Get Customers")
-            .WithTags("Customer");
+            .WithTags("Customer")
+            .RequireCors("AllowSpecificOrigins");
     }
 
     private static async Task<IResult> GetCustomersHandler(IMediator mediator, 
@@ -69,9 +70,11 @@ public sealed record GetCustomersDto
     
     public string City { get; set; }
     
-    public string PostalCode { get; set; }
+    public string Location { get; set; }
     
     public bool IsRemittaUser { get; set; }
+
+    public string PostalCode { get; set; }
 
     public static explicit operator GetCustomersDto(Entities.Customer customer)
     {
@@ -92,6 +95,7 @@ public sealed record GetCustomersDto
             State = customer.State,
             City = customer.City,
             PostalCode = customer.PostCode,
+            Location = customer.Location,
             IsRemittaUser = customer.CustomerRemitterInformation == null ? false : customer.CustomerRemitterInformation.IsRemittaUser!
         };
     }
@@ -105,6 +109,7 @@ public sealed class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery
     {
         _trivistaDbContext = trivistaDbContext;
     }
+
     public async Task<Result<PaginationInfo<GetCustomersDto>>> Handle(GetCustomersQuery request, CancellationToken cancellationToken)
     {
         IQueryable<Entities.Customer> loanRequestList = Enumerable.Empty<Entities.Customer>().AsQueryable();
@@ -128,7 +133,8 @@ public sealed class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery
         
         if (!string.IsNullOrEmpty(request.Remitta))
         {
-            loanRequestList = loanRequestList.Where(x => x.CustomerRemitterInformation.IsRemittaUser == true);
+            bool isRemittaUser = Convert.ToBoolean(request.Remitta);
+            loanRequestList = loanRequestList.Where(x => x.CustomerRemitterInformation.IsRemittaUser == isRemittaUser);
         }
 
         loanRequestList = loanRequestList.Where(x=>x.UserType == "Customer");

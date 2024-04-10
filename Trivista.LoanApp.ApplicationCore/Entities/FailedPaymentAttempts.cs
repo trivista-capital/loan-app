@@ -4,10 +4,8 @@ namespace Trivista.LoanApp.ApplicationCore.Entities;
 
 public sealed class FailedPaymentAttempts: BaseEntity<int>
 {
-    private FailedPaymentAttempts()
-    {
-        
-    }
+    internal FailedPaymentAttempts(){ }
+
     public FailedPaymentAttempts(decimal amount, PaymentAttemptStatus paymentAttemptStatus, Guid repaymentScheduleId)
     {
         Amount = amount;

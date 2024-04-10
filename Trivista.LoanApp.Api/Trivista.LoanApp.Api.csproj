@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <UserSecretsId>70bf96af-dc83-4315-942e-7e45895dddcd</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,7 +25,12 @@
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="7.0.0" />
         <PackageReference Include="Microsoft.IdentityModel.Logging" Version="6.30.1" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
         <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="4.0.0" />
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="9.12.0.78982">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
         <PackageReference Include="Serilog.AspNetCore" Version="6.0.0" />
@@ -36,9 +42,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
       <Content Remove="Logs\**" />
     </ItemGroup>
 

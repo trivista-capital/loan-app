@@ -18,7 +18,8 @@ public sealed class RepaymentReport: ICarterModule
     {
         app.MapGet("/report/repayment", RepaymentReportHandler)
             .WithName("Repayment Report")
-            .WithTags("Report");
+            .WithTags("Report")
+        .RequireAuthorization();
     }
 
     private async Task<IResult> RepaymentReportHandler(IMediator mediator, [FromQuery]ScheduleStatus status, [FromQuery]string? startDate, [FromQuery]string? endDate)
@@ -30,9 +31,9 @@ public sealed class RepaymentReport: ICarterModule
 
 public sealed class RepaymentReportViewModel
 {
-    public int TotalNumberOfLoans { get; set; }
+    public int TotalNumberOfRepayment { get; set; }
     
-    public decimal TotalLoanBalance { get; set; }
+    public decimal TotalRepaymentBalance { get; set; }
 
     public ICollection<TotalNumberOfRepaymentLoansOverTimeViewModel> TotalNumberOfLoansOverTimeViewModel { get; set; }
         = new List<TotalNumberOfRepaymentLoansOverTimeViewModel>();
@@ -40,9 +41,17 @@ public sealed class RepaymentReportViewModel
 
 public sealed record TotalNumberOfRepaymentLoansOverTimeViewModel
 {
-    public int Count { get; set; }
+    public decimal RepaymentAmount { get; set; }
     
-    public DateTime Date { get; set; }
+    public Guid LoanRequestId { get; set; }
+    
+    public string Status { get; set; }
+    
+    public decimal Amount { get; set; }
+    
+    public DateTime DateCreated { get; set; }
+    
+    public string RepaymentType { get; set; }
 }
 
 public sealed record RepaymentReportQuery(ScheduleStatus status, string startDate, string endDate) : IRequest<Result<RepaymentReportViewModel>>;
@@ -58,30 +67,36 @@ public sealed class RepaymentReportQueryHandler : IRequestHandler<RepaymentRepor
     
     public async Task<Result<RepaymentReportViewModel>> Handle(RepaymentReportQuery request, CancellationToken cancellationToken)
     {
-        var loanRequestWithStatus =  _trivistaDbContext.LoanRequest.AsNoTrackingWithIdentityResolution()
-                                     .Include(x=>x.RepaymentSchedules)
-                                     .Where(x => x.RepaymentSchedules.Any(x=>x.Status == request.status));
+        var loanRequestWithStatus =  _trivistaDbContext
+                                                          .LoanRequest
+                                                          .Include(x=>x.RepaymentSchedules.Where(x => x.Status == request.status))
+                                                          .AsNoTrackingWithIdentityResolution();
         
         if (!string.IsNullOrEmpty(request.startDate) && !string.IsNullOrEmpty(request.endDate))
         {
             var startDate = Convert.ToDateTime(request.startDate);
             var endDate = Convert.ToDateTime(request.endDate); //1/07/2023 - 5/07/2023
             
-            loanRequestWithStatus = loanRequestWithStatus.Where(x => x.Created.Date >= startDate.Date && x.Created.Date <= endDate.Date).OrderBy(x=>x.Created);
+            loanRequestWithStatus = loanRequestWithStatus.Where(x => x.Created.Date >= startDate.Date && x.Created.Date < endDate.Date.AddDays(1)).OrderBy(x=>x.Created);
         }
 
         var loans = await loanRequestWithStatus.ToListAsync(cancellationToken);
 
-        var groupedByDate =  loans.Select(x=>x.Created);
-        var repaymenSchedules = loanRequestWithStatus.SelectMany(x => x.RepaymentSchedules.ToList());
+        //var groupedByDate =  loans.OrderBy(x => x.Created).Select(x=>x.Created);
+        var repaymentSchedules = loans.SelectMany(x => x.RepaymentSchedules.OrderBy(x => x.Created).ToList());
         var report = new RepaymentReportViewModel
         {
-            TotalNumberOfLoans = loans.Count(),
-            TotalLoanBalance = repaymenSchedules.Where(x=>x.Status == ScheduleStatus.Unpaid).Sum(x => x.Amount),
-            TotalNumberOfLoansOverTimeViewModel = groupedByDate.Select(x => new TotalNumberOfRepaymentLoansOverTimeViewModel()
+            TotalNumberOfRepayment = repaymentSchedules.Count(),
+            TotalRepaymentBalance = repaymentSchedules.Sum(x => x.RepaymentAmount),
+            
+            TotalNumberOfLoansOverTimeViewModel = repaymentSchedules.Select(x => new TotalNumberOfRepaymentLoansOverTimeViewModel()
             {
-                Count = loans.Count(x=>x.Created.Date == x.Created.Date),
-                Date = x.Date
+                Amount = x.Amount,
+                DateCreated = x.Created,
+                RepaymentAmount = x.RepaymentAmount,
+                Status = x.Status.ToString(),
+                RepaymentType = x.RepaymentType.ToString(),
+                LoanRequestId = x.LoanRequestId
             }).Distinct().ToList()
         };
 

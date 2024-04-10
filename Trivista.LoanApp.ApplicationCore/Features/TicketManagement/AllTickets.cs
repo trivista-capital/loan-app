@@ -75,10 +75,10 @@ public sealed class GetTicketsQueryHandler : IRequestHandler<GetTicketsQuery, Re
     {
         var tickets = Enumerable.Empty<Ticket>().AsQueryable();
         
-        tickets = _trivistaDbContext.Ticket.OrderBy(x=>x.Created).Include(x=>x.Customer).AsQueryable();
+        tickets = _trivistaDbContext.Ticket.AsNoTracking().OrderBy(x=>x.Created).Include(x=>x.Customer).AsQueryable();
         
         
-        if (request.CustomerId.Equals(default))
+        if (request.CustomerId.Equals(default) || request.CustomerId == null)
         {
             tickets = tickets.Select(x => x).AsQueryable();
         }

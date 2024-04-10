@@ -148,7 +148,9 @@ public sealed class GetLoanRequestQueryHandler : IRequestHandler<GetLoanRequestQ
     public async Task<Result<GetSingleLoanRequestDto>> Handle(GetLoanRequestQuery request, CancellationToken cancellationToken)
     {
         var predicate = CustomerLoanRequestSpecification.WhereId(request.Id);
+        
         var loanRequestFromDb = await _trivistaDbContext.LoanRequest
+            .AsNoTrackingWithIdentityResolution()
             .Include(x=>x.ApprovalWorkflow)
             .ThenInclude(x=>x.ApprovalWorkflowApplicationRole)
             .FirstOrDefaultAsync(predicate, cancellationToken);
@@ -156,7 +158,9 @@ public sealed class GetLoanRequestQueryHandler : IRequestHandler<GetLoanRequestQ
         if (loanRequestFromDb == null)
             return new Result<GetSingleLoanRequestDto>(ExceptionManager.Manage("Loan Request", "Loan request does not exist"));
         
-        var lastRepaymentSchedule = await _trivistaDbContext.RepaymentSchedule.Where(x=>x.LoanRequestId == request.Id && x.Status == ScheduleStatus.Paid)
+        var lastRepaymentSchedule = await _trivistaDbContext.RepaymentSchedule
+                                                            .AsNoTracking()
+                                                            .Where(x=>x.LoanRequestId == request.Id && x.Status == ScheduleStatus.Paid)
                                                             .OrderBy(x=>x.DueDate)
                                                             .FirstOrDefaultAsync(cancellationToken);
         

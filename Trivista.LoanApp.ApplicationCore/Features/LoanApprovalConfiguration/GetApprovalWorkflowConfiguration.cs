@@ -23,7 +23,8 @@ public sealed class GetApprovalWorkflowConfigurationController: ICarterModule
     {
          app.MapGet("/getApprovalConfiguration", HandleGetLoanApprovalConfiguration)
                     .WithName("Get-Loan-Approval")
-                    .WithTags("Loan Approval Configuration");
+                    .WithTags("Loan Approval Configuration")
+                    .RequireAuthorization();
     }
     
     /// <summary>

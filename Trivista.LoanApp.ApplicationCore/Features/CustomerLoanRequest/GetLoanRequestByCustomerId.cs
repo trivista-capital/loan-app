@@ -51,7 +51,9 @@ public sealed record GetSingleLoanRequestByCustomerIdDto
     
     public GetSingleSalaryDetailsByCustomerIdDto SalaryDetails { get; set; }
     public ApprovalWorkflowDto ApprovalWorkFlow { get; set; }
-    
+    public DateTime? DateCreated { get; set; }
+    public DateTime? DueDate { get; set; }
+
     public static explicit operator GetSingleLoanRequestByCustomerIdDto(LoanRequest loanRequest)
     {
         return new GetSingleLoanRequestByCustomerIdDto()
@@ -63,7 +65,8 @@ public sealed record GetSingleLoanRequestByCustomerIdDto
             InterestRate = loanRequest.Interest,
             LoanApplicationStatus = EnumHelpers.Convert(loanRequest.LoanApplicationStatus),
             DisbursedLoanStatus = EnumHelpers.Convert(loanRequest.DisbursedLoanStatus),
-            DateLoanPaid = loanRequest.DateLoanPaid
+            DateLoanPaid = loanRequest.DateLoanPaid,
+            DateCreated = loanRequest.Created
         };
     }
 }

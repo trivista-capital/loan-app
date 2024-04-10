@@ -15,7 +15,11 @@ Log.Information("Starting up");
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    var environmnt = builder.Environment.EnvironmentName;
+    
     IdentityModelEventSource.ShowPII = true;
+
     builder.Services.AddControllers().AddJsonOptions(x =>
     {
         // serialize enums as strings in api responses (e.g. Role)
@@ -42,14 +46,13 @@ try
     builder.ConfigureSerilog();
     builder.Services.AddSingleton<TokenManager>();
 
-
     var app = builder.Build();
     app.MigrateDatabase();
     app.MapCarter();
 
     //Configure the HTTP request pipeline.
     app.MapSwagger();
-    if (app.Environment.IsLocal() || app.Environment.IsDevelopment() || app.Environment.IsStaging())
+    if (app.Environment.IsLocal() || app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
     {
         app.UseSwagger();
         
@@ -61,9 +64,6 @@ try
         //app.UseAzureAppConfiguration();
     }
     
-    app.UseSwagger();
-    
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Trivista Loan Management API"));
 
     app.UseHttpsRedirection();
 

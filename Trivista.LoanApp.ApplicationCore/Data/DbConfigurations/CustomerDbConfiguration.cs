@@ -4,7 +4,7 @@ using Trivista.LoanApp.ApplicationCore.Entities;
 
 namespace Trivista.LoanApp.ApplicationCore.Data.DbConfigurations;
 
-public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
+public partial class CustomerDbConfiguration : IEntityTypeConfiguration<Customer>
 {
     public void Configure(EntityTypeBuilder<Customer> builder)
     {
@@ -12,10 +12,10 @@ public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
         var roleId = Guid.Parse("3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d");
 
         var customer = Entities.Customer.Factory.Build(userId, "Babafemi", "Ibitolu", "femi.ibitolu@gmail.com", "",
-                                                       "Male", "", roleId.ToString(), "Staff");
+                                                       "Male", "", roleId.ToString(), "Staff").SetLocation("default");
 
         builder.HasData(customer);
-        
+
         builder.HasKey(x => x.Id);
         builder.Property(x => x.FirstName).IsRequired(false).HasMaxLength(200).HasColumnType("nvarchar(200)");
         builder.Property(x => x.MiddleName).IsRequired(false).HasMaxLength(200).HasColumnType("nvarchar(200)");
@@ -33,8 +33,10 @@ public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
         builder.Property(x => x.PostCode).IsRequired(false).HasMaxLength(20).HasColumnType("nvarchar(20)");
         builder.Property(x => x.RoleId).IsRequired(false).HasColumnType("nvarchar(200)");
         builder.Property(x => x.UserType).IsRequired(false).HasColumnType("nvarchar(200)");
+        builder.Property(x => x.Location).IsRequired(false).HasColumnType("nvarchar(3000)");
         builder.Property(x => x.MbsRequestStatementResponseCode).HasColumnType("int");
         builder.Property(x => x.MbsBankStatement).IsRequired(false).HasColumnType("nvarchar(max)");
+        builder.Property(x => x.MbsBankStatementTicketAndPassword).IsRequired(false).HasColumnType("nvarchar(max)");
         builder.Property(x => x.BankStatementAnalysis).IsRequired(false).HasColumnType("nvarchar(max)");
         //Customer Remitta Information
         builder.OwnsOne(x => x.CustomerRemitterInformation).Property(x => x.IsRemittaUser).HasColumnType("bit");
@@ -45,9 +47,9 @@ public class CustomerDbConfiguration: IEntityTypeConfiguration<Customer>
         builder.OwnsOne(x => x.ProfilePicture).Property(x => x.ProfilePictureFileLength).HasColumnType("int");
         builder.OwnsOne(x => x.ProfilePicture).Property(x => x.ProfilePictureFileName).HasColumnType("nvarchar(500)");
         builder.OwnsOne(x => x.ProfilePicture).Property(x => x.ProfilePictureFileType).HasColumnType("nvarchar(100)");
-        
+
         //builder.OwnsOne(x => x.CustomerRemitterInformation, builder => { builder.ToJson();});
-        
+
         //Relationships
         builder.HasMany(x => x.LoanRequests).WithOne(x => x.Customer)
             .HasForeignKey(x => x.CustomerId)

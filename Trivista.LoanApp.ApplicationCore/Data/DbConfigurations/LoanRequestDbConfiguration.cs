@@ -12,6 +12,7 @@ public class LoanRequestDbConfiguration: IEntityTypeConfiguration<LoanRequest>
         builder.Property(x => x.Bvn).IsRequired().HasMaxLength(20).HasColumnType("nvarchar(20)");
         builder.Property(x => x.DateLoanDisbursed).HasColumnType("datetime2(7)");
         builder.Property(x => x.DateLoanPaid).HasColumnType("datetime2(7)");
+        builder.Property(x => x.Interest).HasColumnType("decimal(18, 2)");
         //Kyc details config
         builder.OwnsOne(x => x.kycDetails).Property(x=>x.CustomerFirstName).HasColumnType("nvarchar(100)");
         builder.OwnsOne(x => x.kycDetails).Property(x => x.CustomerMiddleName).HasColumnType("nvarchar(100)");
@@ -29,6 +30,7 @@ public class LoanRequestDbConfiguration: IEntityTypeConfiguration<LoanRequest>
         builder.OwnsOne(x => x.SalaryDetails).Property(x => x.AccountName).HasColumnType("nvarchar(70)");
         builder.OwnsOne(x => x.SalaryDetails).Property(x => x.BankName).HasColumnType("nvarchar(80)");
         builder.OwnsOne(x => x.SalaryDetails).Property(x => x.AverageMonthlyNetSalary).HasColumnType("decimal(18, 2)");
+        builder.OwnsOne(x => x.SalaryDetails).Property(x => x.BankCode).HasMaxLength(8);
         //Proof of address
         builder.OwnsOne(x => x.ProofOfAddress).Property(x => x.ProofOFAddressFile).HasColumnType("nvarchar(max)");
         builder.OwnsOne(x => x.ProofOfAddress).Property(x => x.ProofOFAddressFileLength).HasColumnType("int");

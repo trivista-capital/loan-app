@@ -1,10 +1,12 @@
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RestSharp;
 using Trivista.LoanApp.ApplicationCore.Commons.Options;
+using Trivista.LoanApp.ApplicationCore.Entities;
 
 namespace Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
 
@@ -132,10 +134,10 @@ public sealed class LoanDisbursementRequestDto
     public string Currency { get; set; }
     
     [JsonProperty("loanAmount")]
-    public string LoanAmount { get; set; }
+    public decimal LoanAmount { get; set; }
     
     [JsonProperty("collectionAmount")]
-    public string CollectionAmount { get; set; }
+    public decimal CollectionAmount { get; set; }
     
     [JsonProperty("dateOfDisbursement")]
     public string DateOfDisbursement { get; set; }
@@ -144,10 +146,10 @@ public sealed class LoanDisbursementRequestDto
     public string DateOfCollection { get; set; }
     
     [JsonProperty("totalCollectionAmount")]
-    public string TotalCollectionAmount { get; set; }
+    public decimal TotalCollectionAmount { get; set; }
     
     [JsonProperty("numberOfRepayments")]
-    public string NumberOfRepayments { get; set; }
+    public int NumberOfRepayments { get; set; }
     
     [JsonProperty("bankCode")]
     public string BankCode { get; set; }
@@ -158,23 +160,8 @@ public sealed class LoanDisbursementResponseDto
     [JsonProperty("status")]
     public string Status { get; set; } 
     
-    [JsonProperty("hasData")]
-    public bool HasData { get; set; } 
-    
-    [JsonProperty("responseId")]
-    public string ResponseId { get; set; }
-    
-    [JsonProperty("responseDate")]
-    public string ResponseDate { get; set; }
-    
-    [JsonProperty("requestDate")]
-    public string RequestDate { get; set; }
-    
-    [JsonProperty("responseCode")]
-    public string ResponseCode { get; set; }
-    
-    [JsonProperty("responseMsg")]
-    public string ResponseMsg { get; set; }
+    [JsonProperty("message")]
+    public string Message { get; set; } 
     
     [JsonProperty("data")]
     public LoanDisbursementResponseDataDto Data { get; set; }
@@ -204,20 +191,22 @@ public sealed class LoanDisbursementResponseDto
     }
 }
 
-
 public sealed class RemittaService: IRemittaService
 {
     private readonly HttpClient _client;
     
     private readonly RemittaOption _remittaOption;
-    
-    public RemittaService(HttpClient client, IOptions<RemittaOption> remittaOption)
+
+    private readonly ILogger<RemittaService> _logger;
+
+    public RemittaService(HttpClient client, IOptions<RemittaOption> remittaOption, ILogger<RemittaService> logger)
     {
         _client = client;
         _remittaOption = remittaOption.Value;
+        _logger = logger;
     }
 
-    public async Task<GetSalaryHistoryResponseDto> SalaryHistory(GetSalaryHistoryRequestDto model, string loanRequestId)
+    public async Task<GetSalaryHistoryResponseDto?> SalaryHistory(GetSalaryHistoryRequestDto model, string loanRequestId)
     {
         var authCode = new Random().Next(1000000, 900009823);
         var hash = ComputeSHA512($"{_remittaOption.APIKey}{loanRequestId}{_remittaOption.ApiToken}");
@@ -225,7 +214,7 @@ public sealed class RemittaService: IRemittaService
         model.AuthorisationChannel = _remittaOption.AuthorisationChannel;
         model.AuthorisationCode = authCode;
 
-        var options = new RestClientOptions("https://remitademo.net")
+        var options = new RestClientOptions(_remittaOption.BaseUrl)
         {
             MaxTimeout = -1,
         };
@@ -240,23 +229,65 @@ public sealed class RemittaService: IRemittaService
         request.AddStringBody(body, DataFormat.Json);
         var jsn = JsonConvert.SerializeObject(model);
         RestResponse response = await client.ExecuteAsync(request);
-        var responseBody = JsonConvert.DeserializeObject<GetSalaryHistoryResponseDto>(response.Content);
-        
-        return responseBody;
+        _logger.LogInformation("Salary history response from server: " + response.Content);
+        if (!response.IsSuccessful) return null;
+        try
+        {
+            var responseBody = JsonConvert.DeserializeObject<GetSalaryHistoryResponseDto>(response!.Content!);
+            return responseBody;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while deserializing SalaryHistory response");
+            return null;
+        }
     }
     
-    public async Task<LoanDisbursementResponseDto> DisburseLoan(LoanDisbursementRequestDto model)
+    public async Task<LoanDisbursementResponseDto?> DisburseLoan(LoanDisbursementRequestDto model)
     {
-        var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("loansvc/data/api/v2/payday/post/loan", content);
-        var responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(
-                await response.Content.ReadAsStringAsync());
+        LoanDisbursementResponseDto? responseBody = null;
+
+        var loanRequestId = Guid.NewGuid().ToString();
+
+        var authCode = new Random().Next(1000000, 900009823);
+        var hash = ComputeSHA512($"{_remittaOption.APIKey}{loanRequestId}{_remittaOption.ApiToken}");
+
+        model.authorisationChannel = _remittaOption.AuthorisationChannel;
+        model.AuthorisationCode = authCode.ToString();
+
+        var options = new RestClientOptions(_remittaOption.BaseApiUrl)
+        {
+            MaxTimeout = -1,
+        };
+        var client = new RestClient(options);
+        var request = new RestRequest("/v2/payday/post/loan", Method.Post);
+        request.AddHeader("Content-Type", "application/json");
+        request.AddHeader("Api_Key", _remittaOption.APIKey);
+        request.AddHeader("Merchant_id", _remittaOption.MerchantId);
+        request.AddHeader("Request_id", loanRequestId);
+        request.AddHeader("Authorization", $"remitaConsumerKey={_remittaOption.APIKey}, remitaConsumerToken={hash}");
+        var body = JsonConvert.SerializeObject(model);
+        request.AddStringBody(body, DataFormat.Json);
+        var jsn = JsonConvert.SerializeObject(model);
+        RestResponse response = await client.ExecuteAsync(request);
+        var jsonResponse = response!.Content!;
+        _logger.LogInformation("Loan disbursement Json response from remita is :{Response}", jsonResponse);
+        if (!response.IsSuccessful) return responseBody;
+        try
+        {
+            responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(jsonResponse);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while deserializing remita disbursement response");
+            return null;
+        }
+
         return responseBody;
     }
     
     private static string ComputeSHA512(string input)
     {
-        StringBuilder sb = new StringBuilder();
         using SHA512 sha512 = SHA512.Create();
         byte[] hashValue = sha512.ComputeHash(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hashValue).ToLower();
