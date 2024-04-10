@@ -46,7 +46,6 @@ try
     builder.ConfigureSerilog();
     builder.Services.AddSingleton<TokenManager>();
 
-
     var app = builder.Build();
     app.MigrateDatabase();
     app.MapCarter();

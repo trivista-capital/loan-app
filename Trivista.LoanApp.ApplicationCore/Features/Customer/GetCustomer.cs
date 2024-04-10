@@ -53,7 +53,9 @@ public sealed record GetCustomerDto
     public string City { get; set; }
     
     public string PostalCode { get; set; }
-    
+
+    public string Location { get; set; }
+
     public bool? IsRemittaUser { get; set; }
 
     public static explicit operator GetCustomerDto(Entities.Customer customer)
@@ -75,6 +77,7 @@ public sealed record GetCustomerDto
             State = customer?.State,
             City = customer?.City,
             PostalCode = customer?.PostCode,
+            Location = customer.Location,
             IsRemittaUser = customer?.CustomerRemitterInformation.IsRemittaUser
         };
     }

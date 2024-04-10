@@ -6,4 +6,6 @@ public sealed record SalaryDetails
     public string SalaryAccountNumber { get; set; } = default!;
     public string BankName { get; set; } = default!;
     public string AccountName { get; set; } = default!;
+    
+    public string BankCode { get; set; } = default!;
 }

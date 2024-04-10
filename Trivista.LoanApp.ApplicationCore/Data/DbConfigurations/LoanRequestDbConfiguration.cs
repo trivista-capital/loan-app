@@ -30,6 +30,7 @@ public class LoanRequestDbConfiguration: IEntityTypeConfiguration<LoanRequest>
         builder.OwnsOne(x => x.SalaryDetails).Property(x => x.AccountName).HasColumnType("nvarchar(70)");
         builder.OwnsOne(x => x.SalaryDetails).Property(x => x.BankName).HasColumnType("nvarchar(80)");
         builder.OwnsOne(x => x.SalaryDetails).Property(x => x.AverageMonthlyNetSalary).HasColumnType("decimal(18, 2)");
+        builder.OwnsOne(x => x.SalaryDetails).Property(x => x.BankCode).HasMaxLength(8);
         //Proof of address
         builder.OwnsOne(x => x.ProofOfAddress).Property(x => x.ProofOFAddressFile).HasColumnType("nvarchar(max)");
         builder.OwnsOne(x => x.ProofOfAddress).Property(x => x.ProofOFAddressFileLength).HasColumnType("int");

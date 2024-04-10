@@ -133,6 +133,8 @@ public sealed record SalaryDetailsDto
     public string SalaryAccountNumber { get; set; }
     public string BankName { get; set; }
     public string AccountName { get; set; }
+    
+    public string BankCode { get; set; }
 
     public static explicit operator SalaryDetails(SalaryDetailsDto salaryDetails)
     {
@@ -141,7 +143,8 @@ public sealed record SalaryDetailsDto
             AverageMonthlyNetSalary = salaryDetails.AverageMonthlyNetSalary,
             SalaryAccountNumber = salaryDetails.SalaryAccountNumber,
             BankName = salaryDetails.BankName,
-            AccountName = salaryDetails.AccountName
+            AccountName = salaryDetails.AccountName,
+            BankCode = salaryDetails.BankCode
         };
     }
 }
@@ -168,12 +171,14 @@ public class RequestLoanCommandValidation : AbstractValidator<RequestLoanCommand
         RuleFor(x => x.LoanDetails.LoanAmount).GreaterThan(0).WithMessage("Loan amount must be set");
         RuleFor(x => x.LoanDetails.tenure).GreaterThan(0).WithMessage("Tenure must be set");
         RuleFor(x => x.LoanDetails.purpose).NotEqual("string").NotNull().NotEmpty().WithMessage("Purpose must be set");
+        
         //RuleFor(x => x.LoanDetails.RepaymentScheduleType)..WithMessage("Repayment schedule must be set");
         //Salary details validation
         RuleFor(x => x.SalaryDetails.AverageMonthlyNetSalary).GreaterThan(0).WithMessage("Average monthly salary must be set");
         RuleFor(x => x.SalaryDetails.SalaryAccountNumber).NotEqual("string").NotNull().NotEmpty().WithMessage("Salary account number must be set");
         RuleFor(x => x.SalaryDetails.BankName).NotEqual("string").NotNull().NotEmpty().WithMessage("Bank name must be set");
         RuleFor(x => x.SalaryDetails.AccountName).NotEqual("string").NotNull().NotEmpty().WithMessage("Account name must be set");
+        RuleFor(x => x.SalaryDetails.BankCode).NotEqual("string").NotNull().NotEmpty().WithMessage("Bank code must be set");
     }
 }
 
@@ -230,9 +235,13 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                 return new Result<bool>(ExceptionManager.Manage("Customer", "Customer does not exist"));
             
             customer.SetBvn(request.Bvn).SetDob(request.kycDetails.CustomerDob).SetSex(request.kycDetails.CustomerSex)
-                                        .SetOccupation(request.kycDetails.CustomerOccupation).SetPhoneNumber(request.kycDetails.CustomerPhoneNumber)
-                                        .SetAddress(request.kycDetails.CustomerAddress).SetCountry(request.kycDetails.CustomerCountry).SetState(request.kycDetails.CustomerState)
-                                        .SetCity(request.kycDetails.CustomerCity).SetPostCode(request.kycDetails.CustomerPostalCode).IsRemittaUser(request.IsRemita);
+                                        .SetOccupation(request.kycDetails.CustomerOccupation).
+                                         SetPhoneNumber(request.kycDetails.CustomerPhoneNumber).
+                                         SetAddress(request.kycDetails.CustomerAddress).
+                                        SetCountry(request.kycDetails.CustomerCountry).
+                                        SetState(request.kycDetails.CustomerState).
+                                        SetCity(request.kycDetails.CustomerCity).
+                                        SetPostCode(request.kycDetails.CustomerPostalCode).IsRemittaUser(request.IsRemita);
 
             var defaultLoan = await _trivistaDbContext.Loan.AsNoTracking().Where(x => x.IsDefault).Select(x=>x).FirstOrDefaultAsync(cancellationToken);
             

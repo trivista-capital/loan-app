@@ -134,10 +134,10 @@ public sealed class LoanDisbursementRequestDto
     public string Currency { get; set; }
     
     [JsonProperty("loanAmount")]
-    public string LoanAmount { get; set; }
+    public decimal LoanAmount { get; set; }
     
     [JsonProperty("collectionAmount")]
-    public string CollectionAmount { get; set; }
+    public decimal CollectionAmount { get; set; }
     
     [JsonProperty("dateOfDisbursement")]
     public string DateOfDisbursement { get; set; }
@@ -146,10 +146,10 @@ public sealed class LoanDisbursementRequestDto
     public string DateOfCollection { get; set; }
     
     [JsonProperty("totalCollectionAmount")]
-    public string TotalCollectionAmount { get; set; }
+    public decimal TotalCollectionAmount { get; set; }
     
     [JsonProperty("numberOfRepayments")]
-    public string NumberOfRepayments { get; set; }
+    public int NumberOfRepayments { get; set; }
     
     [JsonProperty("bankCode")]
     public string BankCode { get; set; }
@@ -191,7 +191,6 @@ public sealed class LoanDisbursementResponseDto
     }
 }
 
-
 public sealed class RemittaService: IRemittaService
 {
     private readonly HttpClient _client;
@@ -230,10 +229,11 @@ public sealed class RemittaService: IRemittaService
         request.AddStringBody(body, DataFormat.Json);
         var jsn = JsonConvert.SerializeObject(model);
         RestResponse response = await client.ExecuteAsync(request);
+        _logger.LogInformation("Salary history response from server: " + response.Content);
+        if (!response.IsSuccessful) return null;
         try
         {
             var responseBody = JsonConvert.DeserializeObject<GetSalaryHistoryResponseDto>(response!.Content!);
-
             return responseBody;
         }
         catch (Exception ex)
@@ -271,14 +271,16 @@ public sealed class RemittaService: IRemittaService
         var jsn = JsonConvert.SerializeObject(model);
         RestResponse response = await client.ExecuteAsync(request);
         var jsonResponse = response!.Content!;
+        _logger.LogInformation("Loan disbursement Json response from remita is :{Response}", jsonResponse);
+        if (!response.IsSuccessful) return responseBody;
         try
         {
             responseBody = JsonConvert.DeserializeObject<LoanDisbursementResponseDto>(jsonResponse);
         }
         catch (Exception ex)
         {
-            // Log error here
-            throw;
+            _logger.LogError(ex, "An error occured while deserializing remita disbursement response");
+            return null;
         }
 
         return responseBody;

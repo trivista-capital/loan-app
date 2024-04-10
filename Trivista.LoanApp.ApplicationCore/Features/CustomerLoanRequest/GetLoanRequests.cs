@@ -65,6 +65,10 @@ public sealed record GetLoanRequests
     public GetSalaryDetailsDto SalaryDetails { get; set; }
     public ApprovalWorkflowDto ApprovalWorkFlow { get; set; }
     public DateTime? DateLoanPaid { get; set; }
+    public DateTime? DateCreated { get; set; }
+    public DateTime? DueDate { get; set; }
+
+    public string Statement { get; set; }
 
     public static explicit operator GetLoanRequests(LoanRequest loanRequest)
     {
@@ -77,7 +81,8 @@ public sealed record GetLoanRequests
             InterestRate = loanRequest.Interest,
             CustomerName = $"{loanRequest.kycDetails.CustomerFirstName} {loanRequest.kycDetails.CustomerLastName}",
             LoanApplicationStatus = EnumHelpers.Convert(loanRequest.LoanApplicationStatus),
-            DisbursedLoanStatus = EnumHelpers.Convert(loanRequest.DisbursedLoanStatus)
+            DisbursedLoanStatus = EnumHelpers.Convert(loanRequest.DisbursedLoanStatus),
+            DateCreated = loanRequest.Created
         };
     }
 }
@@ -239,9 +244,10 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
         
         IQueryable<LoanRequest> loanRequestList = Enumerable.Empty<LoanRequest>().AsQueryable();
         
-        loanRequestList = _trivistaDbContext.LoanRequest
+        loanRequestList = _trivistaDbContext.LoanRequest.Include(x => x.Customer)
             .Include(x => x.ApprovalWorkflow)
             .ThenInclude(x => x.ApprovalWorkflowApplicationRole)
+            //.Include(x => x.RepaymentSchedules.OrderBy(x => x.DueDate))
             .OrderByDescending(x => x.Created)
             .AsQueryable();
         
@@ -264,6 +270,7 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
         foreach (var loanRequest in loanRequestList)
         {
             GetLoanRequests loanRequestDto = (GetLoanRequests)loanRequest;
+            loanRequestDto.Statement = loanRequest.Customer.MbsBankStatement;
             loanRequestDto.kycDetails = (GetkycDetailsDto)loanRequest.kycDetails;
             loanRequestDto.LoanDetails = (GetLoanDetailsDto)loanRequest.LoanDetails;
             loanRequestDto.SalaryDetails = (GetSalaryDetailsDto)loanRequest.SalaryDetails;

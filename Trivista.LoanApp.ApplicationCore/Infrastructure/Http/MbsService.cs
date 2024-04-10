@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Trivista.LoanApp.ApplicationCore.Commons.Options;
@@ -163,10 +164,12 @@ public class MbsService: IMbsService
     private readonly HttpClient _client;
     
     private readonly MbsOption _mbsOption;
+    private readonly ILogger<MbsService> _logger;
     
-    public MbsService(HttpClient client, IOptions<MbsOption> mbsOption)
+    public MbsService(HttpClient client, IOptions<MbsOption> mbsOption, ILogger<MbsService> logger)
     {
         _client = client;
+        _logger = logger;
         _mbsOption = mbsOption.Value;
     }
     
@@ -177,7 +180,7 @@ public class MbsService: IMbsService
         var response = await _client.PostAsync("RequestStatement", content);
         var jsonResponse = await response.Content.ReadAsStringAsync();
         var serializedJsonResponseBody = JsonConvert.DeserializeObject<RequestStatementResponseDto>(jsonResponse);
-        return serializedJsonResponseBody;
+        return serializedJsonResponseBody!;
     }
     
     public async Task<(ConfirmStatementResponseDto, GetFeedbackByRequestIDResponseDto)> ConfirmStatement(ConfirmStatementRequestDto model, int requestId)
@@ -186,38 +189,56 @@ public class MbsService: IMbsService
         
         var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("ConfirmStatement", content);
-        var confirmStatementBody = JsonConvert.DeserializeObject<ConfirmStatementResponseDto>(await response.Content.ReadAsStringAsync());
-        if (confirmStatementBody.Status == "00")
+        var confirmStatementJson = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("JSON response when ConfirmStatement is called: " + confirmStatementJson);
+        var confirmStatementBody = JsonConvert.DeserializeObject<ConfirmStatementResponseDto>(confirmStatementJson);
+        if (confirmStatementBody!.Status == "00")
         {
-            await Task.Delay(10000);
+            await Task.Delay(20000);
             feedbackBody = await GetFeedbackByRequestID(new GetFeedbackByRequestIDRequestDto(){RequestId = requestId});
             if (feedbackBody.Status == "00")
             {
-                return (confirmStatementBody, feedbackBody);
+                if (feedbackBody.Result != null && feedbackBody.Result.Status == "Sent" || feedbackBody.Result.Status == "Success")
+                {
+                    _logger.LogInformation("Statement from GetFeedbackByRequestID was gotten successfully");
+                    return (confirmStatementBody, feedbackBody);
+                }
             }
         }
-        return (confirmStatementBody, feedbackBody);
+        _logger.LogInformation("Confrim statement was not successfully");
+        return (confirmStatementBody, feedbackBody!);
     }
     
     private async Task<GetFeedbackByRequestIDResponseDto> GetFeedbackByRequestID(GetFeedbackByRequestIDRequestDto model)
     {
         var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("GetFeedbackByRequestID", content);
-        var res = await response.Content.ReadAsStringAsync();
-        var responseBody =
-            JsonConvert.DeserializeObject<GetFeedbackByRequestIDResponseDto>(
-                await response.Content.ReadAsStringAsync());
-        return responseBody;
+        var jsonContent = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("JSON response when GetFeedbackByRequestID is called: " + jsonContent);
+        if (response.IsSuccessStatusCode)
+        {
+            var responseBody =
+                JsonConvert.DeserializeObject<GetFeedbackByRequestIDResponseDto>(jsonContent);
+            return responseBody!;   
+        }
+        _logger.LogInformation("Call to GetFeedbackByRequestID was not successful");
+        return new GetFeedbackByRequestIDResponseDto();
     }
     
     public async Task<GetStatementJSONObjectResponseDto> GetStatementJSONObject(GetStatementJSONObjectRequestDto model)
     {
         var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("GetStatementJSONObject", content);
-        var responseBody =
-            JsonConvert.DeserializeObject<GetStatementJSONObjectResponseDto>(
-                await response.Content.ReadAsStringAsync());
-        return responseBody;
+        var jsonContent = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("JSON response when GetStatementJSONObject is called: " + jsonContent);
+        if (response.IsSuccessStatusCode)
+        {
+            var responseBody =
+                JsonConvert.DeserializeObject<GetStatementJSONObjectResponseDto>(jsonContent);
+            return responseBody!;   
+        }
+        _logger.LogInformation("Call to GetStatementJSONObject was not successful");
+        return new GetStatementJSONObjectResponseDto();
     }
     
     public async Task<SelectActiveRequestBanksJSONObjectResponseDto> SelectActiveRequestBanks()

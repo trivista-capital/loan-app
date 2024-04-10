@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Trivista.LoanApp.ApplicationCore.Commons.Options;
+using xTrivista.LoanApp.ApplicationCore.Features.Reschedule;
 
 namespace Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
 
@@ -71,9 +72,39 @@ public sealed class LoginResponse
     }
 }
 
+public abstract class BaseIndicinaRequestContent
+{
+    [JsonProperty("status")]
+    public string Status { get; set; }
+}
+
+public class SuccessfulRequestContent: BaseIndicinaRequestContent
+{
+    [JsonProperty("result")]
+    public string Result { get; set; }
+}
+
+public class FailedRequestContent: BaseIndicinaRequestContent
+{
+    [JsonProperty("message")]
+    public string Message { get; set; }
+    
+    [JsonProperty("result")]
+    public string Result { get; set; }
+}
+
+public  class IndicinaStatementProcessingResponse
+{
+    public SuccessfulRequestContent SuccessfulRequestContent { get; set; }
+    
+    public FailedRequestContent FailedRequestContent { get; set; }
+    
+    public string Data { get; set; }
+}
+
 public interface IIndicina
 {
-    Task<string> ProcessStatement(BankStatementRequest request);
+    Task<IndicinaStatementProcessingResponse> ProcessStatement(BankStatementRequest request);
 }
 
 public sealed class Indicina: IIndicina
@@ -108,13 +139,11 @@ public sealed class Indicina: IIndicina
         return responseBody;
     }
 
-    public async Task<string> ProcessStatement(BankStatementRequest request)
+    public async Task<IndicinaStatementProcessingResponse> ProcessStatement(BankStatementRequest request)
     {
         var token = await GenerateToken();
         
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Data.Token);
-
-        var str = JsonConvert.SerializeObject(request);
         
         var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
         
@@ -124,8 +153,26 @@ public sealed class Indicina: IIndicina
         
         if (response.IsSuccessStatusCode)
         {
-            return result;
+            var responseBody = JsonConvert.DeserializeObject<SuccessfulRequestContent>(result);
+            if (responseBody!.Status != "error")
+            {
+                return new IndicinaStatementProcessingResponse()
+                {
+                    SuccessfulRequestContent = responseBody,
+                    FailedRequestContent = new FailedRequestContent(),
+                    Data = result
+                };
+            }
+            else {
+                var failedResponseBody = JsonConvert.DeserializeObject<FailedRequestContent>(result);
+                return new IndicinaStatementProcessingResponse()
+                {
+                    SuccessfulRequestContent = new SuccessfulRequestContent(),
+                    FailedRequestContent = failedResponseBody!,
+                    Data = ""
+                };
+            }
         }
-        return string.Empty;
+        return new IndicinaStatementProcessingResponse();
     }
 }
