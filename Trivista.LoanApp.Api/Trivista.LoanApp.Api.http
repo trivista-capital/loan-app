@@ -1,0 +1,5 @@
+﻿@Trivista.LoanApp.Api_HostAddress = https://localhost:7104
+
+GET {{Trivista.LoanApp.Api_HostAddress}}/weatherforecast
+
+###

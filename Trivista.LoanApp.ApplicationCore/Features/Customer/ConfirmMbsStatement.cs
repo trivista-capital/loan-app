@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Exceptions;
 using Trivista.LoanApp.ApplicationCore.Extensions;
@@ -74,17 +75,31 @@ public sealed class ConfirmMbsStatementHandler : IRequestHandler<ConfirmMbsState
             return exceptionResult;
         
         var customer = await _trivistaDbContext.Customer
-                             .AsNoTracking()
                              .FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
         
         if(customer == null)
             return new Result<(ConfirmStatementResponseDto, GetFeedbackByRequestIDResponseDto)>(ExceptionManager.Manage("ConfirmMbsStatement", "Customer is invalid"));
+
+        var ticketAndPassword = new MbsTicketAndPassword
+        {
+            Ticket = request.TicketNumber,
+            Password = request.Password
+        };
+
+        var ticketAndPasswordJson = JsonConvert.SerializeObject(ticketAndPassword);
+
+        customer.SetMbsBankStatementTicketAndPassword(ticketAndPasswordJson);
+
+        await _trivistaDbContext.SaveChangesAsync(cancellationToken);
+        
+        var mbsCustomer = await _trivistaDbContext.Customer.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
         
         var (confirmStatementResponse, getFeedbackByRequestIdResponse) = await _mbsService.ConfirmStatement(new ConfirmStatementRequestDto()
         {
             TicketNo = request.TicketNumber,
             Password = request.Password
-        }, customer.MbsRequestStatementResponseCode);
+        }, mbsCustomer!.MbsRequestStatementResponseCode);
 
         if (confirmStatementResponse.Status == "00")
         {
@@ -96,7 +111,6 @@ public sealed class ConfirmMbsStatementHandler : IRequestHandler<ConfirmMbsState
                             var dbContext = _serviceProvider.GetRequiredService<TrivistaDbContext>();
                             
                             var customerToUpdate = await dbContext.Customer
-                                .AsNoTracking()
                                 .FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
 
                             var jsonStatementResult = await _mbsService.GetStatementJSONObject(new GetStatementJSONObjectRequestDto()
@@ -105,9 +119,19 @@ public sealed class ConfirmMbsStatementHandler : IRequestHandler<ConfirmMbsState
                                 Password = request.Password
                             });
                             
+                            //_logger.LogInformation();
+                            
                             if (jsonStatementResult.Status == "00")
                             {
-                                var indicinaResponse = await indicinaService.ProcessStatement(new BankStatementRequest()
+                                customerToUpdate!.SetMbsBankStatement(jsonStatementResult.Result);
+
+                                dbContext.Customer.Update(customerToUpdate);
+                                
+                                await dbContext.SaveChangesAsync(cancellationToken);
+                                
+                                _logger.LogInformation("Successful got statement from mbs and saved to db");
+                                
+                                var response = await indicinaService.ProcessStatement(new BankStatementRequest()
                                 {
                                     Customer = new()
                                     {
@@ -129,21 +153,19 @@ public sealed class ConfirmMbsStatementHandler : IRequestHandler<ConfirmMbsState
                                     }
                                 });
 
-                                if (string.IsNullOrEmpty(indicinaResponse))
+                                if (string.IsNullOrEmpty(response.Data))
                                 {
-                                    _logger.LogInformation("Unable to geed success from indicina");
+                                    _logger.LogInformation(response.FailedRequestContent.Message);
                                     return;
                                 }
-
-                                customerToUpdate.SetMbsBankStatement(jsonStatementResult.Result);
                                 
-                                customerToUpdate.SetBankStatementAnalysis(indicinaResponse);
+                                customerToUpdate.SetBankStatementAnalysis(JsonConvert.SerializeObject(response.Data));
 
                                 dbContext.Customer.Update(customerToUpdate);
                                 
                                 await dbContext.SaveChangesAsync(cancellationToken);
                                 
-                                _logger.LogInformation("Successful getting response from indicina");
+                                _logger.LogInformation("Successful analysis from indicina and saved to db");
                             }
                             else
                             {
@@ -171,4 +193,11 @@ public sealed class ConfirmMbsStatementHandler : IRequestHandler<ConfirmMbsState
 
         return (confirmStatementResponse, getFeedbackByRequestIdResponse);
     }
+}
+
+public class MbsTicketAndPassword
+{
+    public  string Ticket { get; set; }
+    
+    public  string Password { get; set; }
 }

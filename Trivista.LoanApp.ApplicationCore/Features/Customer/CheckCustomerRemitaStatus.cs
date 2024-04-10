@@ -5,6 +5,7 @@ using LanguageExt.Common;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
@@ -21,10 +22,10 @@ public class CheckCustomerRemitaStatusController: ICarterModule
     {
         app.MapPost("/customer/checkRemitaStatus", CheckRemitaStatusHandler)
             .WithName("Verify Remita Status")
-            .WithTags("Customer");
+            .WithTags("Remita");
     }
     
-    private async Task<IResult> CheckRemitaStatusHandler(IMediator mediator, CheckRemitaStatusQuery model)
+    private async Task<IResult> CheckRemitaStatusHandler(IMediator mediator, [FromBody]CheckRemitaStatusQuery model)
     {
         var result = await mediator.Send(model);
         return result.ToOk(x => x);
@@ -44,7 +45,7 @@ public class CheckRemitaStatusQueryValidation: AbstractValidator<CheckRemitaStat
     }
 }
 
-public sealed record CheckRemitaStatusQuery(string FirstName, string LastName, string MiddleName, string AccountNumber, string Bvn, string BankName) : IRequest<Result<bool>>;
+public sealed record CheckRemitaStatusQuery(string FirstName, string LastName, string MiddleName, string AccountNumber, string Bvn, string BankName, string BankCode) : IRequest<Result<bool>>;
 
 public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatusQuery, Result<bool>>
 {
@@ -75,40 +76,31 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
         
         if (!exceptionResult.IsSuccess)
             return exceptionResult;
-
-        //Call mbs for banks  
-        var banksService = await _payStackService.GetBanks();
-        if(banksService == null)
-            return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to retrieve banks at the moment"));
-
-        var bank = banksService.Data.Where(x => x.Name.ToLower().Trim() == request.BankName.ToLower().Trim()).Select(x=>x).FirstOrDefault();
-        if(bank == null)
-            return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to verify customer bank"));
             
         //Call Remitta
-        var remittaMandateResponse = await _remittaService.SalaryHistory(new GetSalaryHistoryRequestDto()
+        var remitaMandateResponse = await _remittaService.SalaryHistory(new GetSalaryHistoryRequestDto()
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
             MiddleName = request.MiddleName,
             AccountNumber = request.AccountNumber,
-            BankCode = bank.Code,
+            BankCode = request.BankCode,
             Bvn = request.Bvn
         }, Guid.NewGuid().ToString());
 
-        if(remittaMandateResponse == null)
+        if(remitaMandateResponse == null)
         {
-            _logger.LogError("Unable to get response from remitta service in CheckRemitaStatusHandler");
+            _logger.LogError("Unable to get response from remita service in CheckRemitaStatusHandler");
             return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to check customer status"));
         }
 
-        return remittaMandateResponse switch
+        return remitaMandateResponse switch
         {
-            { HasData: true } when remittaMandateResponse.Status.ToUpper() == "success".ToUpper() &&
-                                   remittaMandateResponse.ResponseMsg == "SUCCESS" => remittaMandateResponse.Data
+            { HasData: true } when remitaMandateResponse.Status.ToUpper() == "success".ToUpper() &&
+                                   remitaMandateResponse.ResponseMsg == "SUCCESS" => remitaMandateResponse.Data
                 .SalaryPaymentDetails.Any(),
-            { HasData: false } when remittaMandateResponse.Status == null || remittaMandateResponse.Status.ToUpper() == "fail".ToUpper() &&
-                                    remittaMandateResponse.ResponseMsg != "SUCCESS" => new Result<bool>(new TrivistaException("Not a remita user", 404)),
+            { HasData: false } when remitaMandateResponse.Status == null || remitaMandateResponse.Status.ToUpper() == "fail".ToUpper() &&
+                remitaMandateResponse.ResponseMsg != "SUCCESS" => new Result<bool>(new TrivistaException(remitaMandateResponse.ResponseMsg, 400)),
             _ => new Result<bool>(ExceptionManager.Manage("Statement", "Unable to determine remita status"))
         };
     }

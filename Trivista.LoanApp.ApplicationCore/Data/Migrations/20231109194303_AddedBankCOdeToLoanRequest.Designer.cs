@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 
@@ -11,9 +12,11 @@ using Trivista.LoanApp.ApplicationCore.Data.Context;
 namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
 {
     [DbContext(typeof(TrivistaDbContext))]
-    partial class TrivistaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231109194303_AddedBankCOdeToLoanRequest")]
+    partial class AddedBankCOdeToLoanRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,10 +64,10 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         new
                         {
                             Id = new Guid("3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d"),
-                            CreatedOn = new DateTime(2023, 12, 14, 10, 28, 3, 872, DateTimeKind.Utc).AddTicks(6082),
+                            CreatedOn = new DateTime(2023, 11, 9, 19, 43, 2, 981, DateTimeKind.Utc).AddTicks(792),
                             Description = "Default super admin role",
                             IsDeleted = false,
-                            LastModified = new DateTime(2023, 12, 14, 10, 28, 3, 872, DateTimeKind.Utc).AddTicks(6086),
+                            LastModified = new DateTime(2023, 11, 9, 19, 43, 2, 981, DateTimeKind.Utc).AddTicks(794),
                             Name = "SuperAdmin"
                         });
                 });
@@ -304,13 +307,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                     b.Property<int>("LoaneeTypes")
                         .HasColumnType("int");
 
-                    b.Property<string>("Location")
-                        .HasColumnType("nvarchar(3000)");
-
                     b.Property<string>("MbsBankStatement")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MbsBankStatementTicketAndPassword")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("MbsRequestStatementResponseCode")
@@ -354,7 +351,7 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         new
                         {
                             Id = new Guid("363b37a0-c306-4472-a405-4b576334cca0"),
-                            Created = new DateTime(2023, 12, 14, 10, 28, 3, 812, DateTimeKind.Utc).AddTicks(8980),
+                            Created = new DateTime(2023, 11, 9, 19, 43, 2, 946, DateTimeKind.Utc).AddTicks(7270),
                             Deleted = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DeletedBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Dob = "",
@@ -364,7 +361,6 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                             LastModifiedBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             LastName = "Ibitolu",
                             LoaneeTypes = 0,
-                            Location = "default",
                             MbsRequestStatementResponseCode = 0,
                             PhoneNumber = "",
                             RoleId = "3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d",

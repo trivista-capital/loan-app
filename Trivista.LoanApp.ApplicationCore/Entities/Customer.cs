@@ -59,12 +59,16 @@ public sealed class Customer: BaseEntity<Guid>
     
     public string MbsBankStatement { get; private set; }
     
+    public string MbsBankStatementTicketAndPassword { get; private set; }
+    
     public string BankStatementAnalysis { get; private set; }
 
     public LoaneeTypes LoaneeTypes { get; set; }
     public CustomerRemitterInformation CustomerRemitterInformation { get; set; }
     public ProfilePicture? ProfilePicture { get; private set; }
     public ICollection<LoanRequest> LoanRequests { get; set; } = new List<LoanRequest>();
+
+    public string? Location { get; private set; }
 
     public List<Ticket> Tickets { get; set; }
         = new List<Ticket>();
@@ -192,6 +196,18 @@ public sealed class Customer: BaseEntity<Guid>
     public Customer SetProfilePicture(ProfilePicture profilePicture)
     {
         this.ProfilePicture = profilePicture;
+        return this;
+    }
+
+    public Customer SetLocation(string location)
+    {
+        this.Location = location;
+        return this;
+    }
+
+    public Customer SetMbsBankStatementTicketAndPassword(string mbsBankStatementTicketAndPassword)
+    {
+        this.MbsBankStatementTicketAndPassword = mbsBankStatementTicketAndPassword;
         return this;
     }
 

@@ -12,7 +12,7 @@ public partial class CustomerDbConfiguration : IEntityTypeConfiguration<Customer
         var roleId = Guid.Parse("3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d");
 
         var customer = Entities.Customer.Factory.Build(userId, "Babafemi", "Ibitolu", "femi.ibitolu@gmail.com", "",
-                                                       "Male", "", roleId.ToString(), "Staff");
+                                                       "Male", "", roleId.ToString(), "Staff").SetLocation("default");
 
         builder.HasData(customer);
 
@@ -33,8 +33,10 @@ public partial class CustomerDbConfiguration : IEntityTypeConfiguration<Customer
         builder.Property(x => x.PostCode).IsRequired(false).HasMaxLength(20).HasColumnType("nvarchar(20)");
         builder.Property(x => x.RoleId).IsRequired(false).HasColumnType("nvarchar(200)");
         builder.Property(x => x.UserType).IsRequired(false).HasColumnType("nvarchar(200)");
+        builder.Property(x => x.Location).IsRequired(false).HasColumnType("nvarchar(3000)");
         builder.Property(x => x.MbsRequestStatementResponseCode).HasColumnType("int");
         builder.Property(x => x.MbsBankStatement).IsRequired(false).HasColumnType("nvarchar(max)");
+        builder.Property(x => x.MbsBankStatementTicketAndPassword).IsRequired(false).HasColumnType("nvarchar(max)");
         builder.Property(x => x.BankStatementAnalysis).IsRequired(false).HasColumnType("nvarchar(max)");
         //Customer Remitta Information
         builder.OwnsOne(x => x.CustomerRemitterInformation).Property(x => x.IsRemittaUser).HasColumnType("bit");
