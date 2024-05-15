@@ -17,6 +17,7 @@ public sealed class DeleteLoanConfigurationController: ICarterModule
     {
         app.MapPost("/deleteLoanConfiguration/{id}", DeleteLoanConfigurationHandler)
             .WithName("DeleteLoanConfiguration")
+            .RequireAuthorization()
             .WithTags("Loan Configuration");
     }
 

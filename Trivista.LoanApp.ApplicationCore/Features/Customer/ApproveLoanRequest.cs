@@ -26,8 +26,8 @@ public class ApproveLoanRequest: ICarterModule
     {
         app.MapPost("/customer/approval/LoanRequest/{id}", ApproveLoanHandler)
             .WithName("Approve Loan By Customer")
-            .WithTags("Customer");
-        //.RequireAuthorization();
+            .WithTags("Customer")
+        .RequireAuthorization();
     }
 
     private static async Task<IResult> ApproveLoanHandler(IMediator mediator, ApproveLoanByCustomerCommand command)
@@ -53,19 +53,27 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
 
     private readonly IMbsService _mbsService;
 
-    public ApproveLoanByCustomerCommandHandler(TrivistaDbContext trivistaDbContext, TokenManager token, ILogger<ApproveLoanCommandHandler> logger, IPayStackService payStackService, 
-        IRemittaService remittaService, IMbsService mbsService)
+
+    public ApproveLoanByCustomerCommandHandler(
+        TrivistaDbContext trivistaDbContext, 
+        ILogger<ApproveLoanCommandHandler> logger, 
+        IPayStackService payStackService, 
+        IRemittaService remittaService, 
+        IMbsService mbsService,
+        TokenManager token)
     {
         _trivistaDbContext = trivistaDbContext;
-        _token = token;
         _logger = logger;
         _payStackService = payStackService;
         _remittaService = remittaService;
         _mbsService = mbsService;
+        _token = token;
     }
     
     public async Task<Result<Unit>> Handle(ApproveLoanByCustomerCommand request, CancellationToken cancellationToken)
     {
+        var userEmail = _token.GetEmail();
+
         var transactionReferenceNumber = Guid.NewGuid();
         var customer = await _trivistaDbContext.Customer.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
         if (customer == null)
@@ -116,7 +124,12 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
         });
         
         if(!payment.Status)
-            return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", payment.Message));
+        {
+            loanRequest.SetProviderAccountStatus();
+            _logger.LogInformation("Unable to approve loan for user: {User}", userEmail);
+            _logger.LogInformation(payment.Message);
+            return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", "Something went wrong, please contact support"));
+        }
         
         var disbursementApproval = DisbursementApproval.Factory.Build(Guid.NewGuid(), loanRequest, "", payment.Data.TransferCode, transactionReferenceNumber.ToString());
         

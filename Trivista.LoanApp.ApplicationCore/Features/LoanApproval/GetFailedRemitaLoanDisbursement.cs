@@ -17,6 +17,7 @@ public class GetFailedRemitaLoanDisbursementController: ICarterModule
     {
         app.MapGet("/disbursement/remita/failedRemitaDisbursement", GetFailedRemitaLoanDisbursementHandler)
             .WithTags("Remita")
+            .RequireAuthorization()
             .WithName("Failed Disbursement");
     }
 

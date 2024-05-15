@@ -24,17 +24,10 @@ public sealed class LoanRequestController: ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        try
-        {
-            app.MapPost("/requestLoan", HandleRequestLoan)
-           .WithName("RequestLoan")
-           .WithTags("Loan Request");
-           //.RequireAuthorization();
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        app.MapPost("/requestLoan", HandleRequestLoan)
+       .WithName("RequestLoan")
+       .WithTags("Loan Request")
+       .RequireAuthorization();
     }
     
     private async Task<IResult> HandleRequestLoan(IMediator mediator, [FromBody]RequestLoanCommand model)

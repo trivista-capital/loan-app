@@ -22,6 +22,7 @@ public sealed class GetLoanRequestController: ICarterModule
     {
         app.MapGet("/loanRequests/{id}", HandleRequestLoan)
             .WithName("RequestLoanById")
+            .RequireAuthorization()
             .WithTags("Loan Request");
     }
     

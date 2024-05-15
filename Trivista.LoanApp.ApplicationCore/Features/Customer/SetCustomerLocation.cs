@@ -28,6 +28,7 @@ namespace Trivista.LoanApp.ApplicationCore.Features.Customer
             app.MapPost("/Customer/setCustomerLocation", HandleCustomerLocation)
              .WithName("Customer Location")
              .WithTags("Customer")
+             .RequireAuthorization()
              .RequireCors("AllowSpecificOrigins");
         }
 

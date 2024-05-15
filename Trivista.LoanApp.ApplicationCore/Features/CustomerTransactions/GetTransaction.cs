@@ -22,6 +22,7 @@ public class GetTransactionController: ICarterModule
     {
         app.MapGet("/getTransactions", GetTransactionsHandler)
             .WithName("Get Transactions")
+            .RequireAuthorization()
             .WithTags("Admin");
     }
 

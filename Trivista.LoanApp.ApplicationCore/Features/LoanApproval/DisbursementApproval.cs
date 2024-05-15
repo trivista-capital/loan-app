@@ -25,8 +25,8 @@ public class DisbursementApprovalController: ICarterModule
     {
         app.MapPost("/disbursement/approval/{id}", FinalLoanApproveHandler)
             .WithName("Loan disbursement By Admin")
-            .WithTags("Admin");
-        //.RequireAuthorization();
+            .WithTags("Admin")
+        .RequireAuthorization();
     }
 
     private static async Task<IResult> FinalLoanApproveHandler(IMediator mediator, Guid id, [FromBody]Approval command)

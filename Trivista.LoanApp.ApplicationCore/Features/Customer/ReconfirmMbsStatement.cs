@@ -23,6 +23,7 @@ public class ReconfirmMbsStatement: ICarterModule
     {
         app.MapPost("/reConfirmMbsStatement", ReConfirmMbsStatementHandler)
             .WithName("Re-Confirm Mbs Statement")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
     

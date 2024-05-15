@@ -24,6 +24,23 @@ public sealed class LoanRequest: BaseEntity<Guid>
         Created = DateTime.UtcNow;
         ProofOfAddress = proofOfAddress;
     }
+
+
+    private LoanRequest(Guid id, string bvn, Customer customer, ApprovalWorkflow approvalWorkflow, SalaryDetails salaryDetails,
+    LoanDetails loanDetails, kycDetails kycDetails, decimal interestRate)
+    {
+        Id = id;
+        Bvn = bvn;
+        LoanApplicationStatus = LoanApplicationStatus.Pending;
+        DisbursedLoanStatus = DisbursedLoanStatus.None;
+        Customer = customer;
+        ApprovalWorkflow = approvalWorkflow;
+        SalaryDetails = salaryDetails;
+        LoanDetails = loanDetails;
+        this.kycDetails = kycDetails;
+        Created = DateTime.UtcNow;
+    }
+
     public string Bvn { get; private set; }
     public LoanApplicationStatus LoanApplicationStatus { get; private set; }
     public DateTime? DateLoanPaid { get; set; }
@@ -89,13 +106,20 @@ public sealed class LoanRequest: BaseEntity<Guid>
         return this;
     }
     
-    public LoanRequest SetLoanDisbursedStatus()
+    public LoanRequest SetLoanDisbursedStatus() 
     {
         this.DisbursedLoanStatus = DisbursedLoanStatus.Disbursed;  
         this.DateLoanDisbursed = DateTime.UtcNow;
         return this;
     }
-    
+
+    public LoanRequest SetProviderAccountStatus()
+    {
+        this.DisbursedLoanStatus = DisbursedLoanStatus.ProviderInsufficientFunds;
+        this.DateLoanDisbursed = DateTime.UtcNow;
+        return this;
+    }
+
     public LoanRequest ChangeLoanAmount(decimal amount)
     {
         this.LoanDetails.LoanAmount = amount;
@@ -126,6 +150,12 @@ public sealed class LoanRequest: BaseEntity<Guid>
             SalaryDetails salaryDetails, LoanDetails loanDetails, kycDetails kycDetails, ProofOfAddress proofOfAddress, decimal interestRate)
         {
             return new LoanRequest(id, bvn, customer, approvalWorkflow, salaryDetails, loanDetails, kycDetails, proofOfAddress, interestRate);
+        }
+
+        public static LoanRequest Build(Guid id, string bvn, Customer customer, ApprovalWorkflow approvalWorkflow, SalaryDetails salaryDetails,
+    LoanDetails loanDetails, kycDetails kycDetails, decimal interestRate)
+        {
+            return new LoanRequest(id, bvn, customer, approvalWorkflow, salaryDetails, loanDetails, kycDetails, interestRate);
         }
     }
     protected override void When(object @event)

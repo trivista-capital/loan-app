@@ -21,6 +21,7 @@ public class GeCustomerProfilePictureController: ICarterModule
         app.MapGet("/customer/profilepictire/{id}", HandleProfilePictureRequest)
             .WithName("Customer Profile Picture")
             .WithTags("Customer")
+            .RequireAuthorization()
             .RequireCors("AllowSpecificOrigins");
     }
     

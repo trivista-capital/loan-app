@@ -19,6 +19,7 @@ public class AddMessageToTicketController: ICarterModule
     {
         app.MapPost("/addMessage", LogMessageHandler)
             .WithName("Add Message")
+            .RequireAuthorization()
             .WithTags("Ticket Management");
     }
 

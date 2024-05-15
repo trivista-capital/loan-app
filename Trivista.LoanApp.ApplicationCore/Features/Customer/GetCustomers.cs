@@ -20,6 +20,7 @@ public sealed class GetCustomersController: ICarterModule
         app.MapGet("/customers", GetCustomersHandler)
             .WithName("Get Customers")
             .WithTags("Customer")
+            .RequireAuthorization()
             .RequireCors("AllowSpecificOrigins");
     }
 

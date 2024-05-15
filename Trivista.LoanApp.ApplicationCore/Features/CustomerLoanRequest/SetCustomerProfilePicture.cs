@@ -21,6 +21,7 @@ public class SetCustomerProfilePictureController: ICarterModule
     {
         app.MapPost("/Customer/ProfilePicture", HandleCustomerProfilePicture)
             .WithName("Profile Picture")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
     

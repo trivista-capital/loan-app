@@ -22,6 +22,7 @@ public class CheckCustomerRemitaStatusController: ICarterModule
     {
         app.MapPost("/customer/checkRemitaStatus", CheckRemitaStatusHandler)
             .WithName("Verify Remita Status")
+            .RequireAuthorization()
             .WithTags("Remita");
     }
     

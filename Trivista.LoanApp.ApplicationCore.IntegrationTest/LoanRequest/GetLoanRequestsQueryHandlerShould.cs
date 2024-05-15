@@ -19,7 +19,7 @@ public class GetLoanRequestsQueryHandlerShould
     {
         var dbContext = fixture.Services.GetRequiredService<TrivistaDbContext>();
         var tokenManager = fixture.Services.GetRequiredService<TokenManager>();
-        _getLoanRequestsQuery = new GetLoanRequestsQueryHandler(dbContext, tokenManager);
+        //_getLoanRequestsQuery = new GetLoanRequestsQueryHandler(dbContext, tokenManager);
     }
     
     [Fact]

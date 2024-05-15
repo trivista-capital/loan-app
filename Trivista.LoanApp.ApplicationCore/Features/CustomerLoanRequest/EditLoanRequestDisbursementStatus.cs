@@ -20,7 +20,8 @@ public class EditLoanRequestDisbursementStatusController: ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         app.MapPost("loanRequest/{id}/changeLoanDisbursementStatus", EditLoanRequestDisbursementStatusHandler).
-            WithName("Change loan request status").
+            WithName("Change loan request status")
+            .RequireAuthorization().
             WithTags("Admin");
     }
 

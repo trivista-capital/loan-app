@@ -22,6 +22,7 @@ public class PaymentController: ICarterModule
     {
         app.MapPost("/makePayment", MakePaymentHandler)
             .WithName("Make Payment")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
 

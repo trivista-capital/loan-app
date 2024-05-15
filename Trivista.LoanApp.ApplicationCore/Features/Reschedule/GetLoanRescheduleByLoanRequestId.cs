@@ -19,6 +19,7 @@ public class GetLoanRescheduleByLoanRequestIdController:ICarterModule
         app.MapGet("/repaymentSchedule/LoanRequest/{id}",
                 GetRepaymentScheduleHandler)
             .WithName("GetRepaymentScheduleForLoan")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
 

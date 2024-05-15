@@ -19,6 +19,7 @@ public sealed class TicketController: ICarterModule
     {
         app.MapGet("/ticket/{id}", TicketsHandler)
             .WithName("Get ticket")
+            .RequireAuthorization()
             .WithTags("Ticket Management");
     }
 

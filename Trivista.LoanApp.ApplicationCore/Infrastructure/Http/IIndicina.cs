@@ -98,13 +98,26 @@ public  class IndicinaStatementProcessingResponse
     public SuccessfulRequestContent SuccessfulRequestContent { get; set; }
     
     public FailedRequestContent FailedRequestContent { get; set; }
-    
+
+    public IndicinaStatementProcessDto Failed { get; set; }
+
     public string Data { get; set; }
 }
 
 public interface IIndicina
 {
     Task<IndicinaStatementProcessingResponse> ProcessStatement(BankStatementRequest request);
+}
+
+
+public class IndicinaStatementProcessDto
+{
+    [JsonProperty("message")]
+    public string Message { get; set; }
+    [JsonProperty("code")]
+    public int Code { get; set; }
+    [JsonProperty("status")]
+    public string Status { get; set; }
 }
 
 public sealed class Indicina: IIndicina
@@ -173,6 +186,12 @@ public sealed class Indicina: IIndicina
                 };
             }
         }
-        return new IndicinaStatementProcessingResponse();
+        var failedResponseFromIndicinal = JsonConvert.DeserializeObject<IndicinaStatementProcessDto>(result);
+        return new IndicinaStatementProcessingResponse()
+        {
+            SuccessfulRequestContent = new SuccessfulRequestContent(),
+            Failed = failedResponseFromIndicinal!,
+            Data = ""
+        };
     }
 }

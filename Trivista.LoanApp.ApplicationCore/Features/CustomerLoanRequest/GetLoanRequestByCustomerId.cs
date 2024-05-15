@@ -24,6 +24,7 @@ public sealed class ByCustomerIdController: ICarterModule
     {
         app.MapGet("/loanRequests/Customer/{id}", HandleRequestLoan)
             .WithName("RequestLoanByCustomerId")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
     

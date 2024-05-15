@@ -11,7 +11,7 @@ public partial class CustomerDbConfiguration : IEntityTypeConfiguration<Customer
         var userId = Guid.Parse("363b37a0-c306-4472-a405-4b576334cca0");
         var roleId = Guid.Parse("3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d");
 
-        var customer = Entities.Customer.Factory.Build(userId, "Babafemi", "Ibitolu", "femi.ibitolu@gmail.com", "",
+        var customer = Entities.Customer.Factory.Build(userId, "Admin", "Admin", "tgslimited@gmail.com", "",
                                                        "Male", "", roleId.ToString(), "Staff").SetLocation("default");
 
         builder.HasData(customer);
