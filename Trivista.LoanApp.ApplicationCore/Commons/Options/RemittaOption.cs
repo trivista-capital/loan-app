@@ -20,3 +20,8 @@ public class RemittaOption
 
     public string AuthorisationCode { get; set; }
 }
+
+public class RecovaOption
+{
+    public string BaseUrl { get; set; }
+}

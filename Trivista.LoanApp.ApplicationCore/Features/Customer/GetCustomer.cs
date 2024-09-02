@@ -57,7 +57,7 @@ public sealed record GetCustomerDto
 
     public string Location { get; set; }
 
-    public bool? IsRemittaUser { get; set; }
+    public string? IsRemittaUser { get; set; }
 
     public static explicit operator GetCustomerDto(Entities.Customer customer)
     {

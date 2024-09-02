@@ -20,26 +20,26 @@ using Trivista.LoanApp.ApplicationCore.Services.Payment;
 
 namespace Trivista.LoanApp.ApplicationCore.Features.Customer;
 
-public class ApproveLoanRequest: ICarterModule
+public class RegenerateOtpFromPaystack : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("/customer/approval/LoanRequest/{id}", ApproveLoanHandler)
-            .WithName("Approve Loan By Customer")
+        app.MapPost("/customer/approval/regeneratePayStackOtp/{id}", RegenerateOtpFromPaystackHandler)
+            .WithName("Regenerate PayStackOtp")
             .WithTags("Customer")
         .RequireAuthorization();
     }
 
-    private static async Task<IResult> ApproveLoanHandler(IMediator mediator, ApproveLoanByCustomerCommand command)
+    private static async Task<IResult> RegenerateOtpFromPaystackHandler(IMediator mediator, RegenerateOtpFromPaystackCommand command)
     {
         var response = await mediator.Send(command);
         return response.ToOk(x => x);
     }
 }
 
-public sealed record ApproveLoanByCustomerCommand(Guid CustomerId,Guid LoanRequestId): IRequest<Result<Unit>>;
+public sealed record RegenerateOtpFromPaystackCommand(Guid CustomerId,Guid LoanRequestId): IRequest<Result<Unit>>;
 
-public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<ApproveLoanByCustomerCommand, Result<Unit>>
+public sealed record RegenerateOtpFromPaystackCommandHandler : IRequestHandler<RegenerateOtpFromPaystackCommand, Result<Unit>>
 {
     private readonly TrivistaDbContext _trivistaDbContext;
     
@@ -54,7 +54,7 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
     private readonly IMbsService _mbsService;
 
 
-    public ApproveLoanByCustomerCommandHandler(
+    public RegenerateOtpFromPaystackCommandHandler(
         TrivistaDbContext trivistaDbContext, 
         ILogger<ApproveLoanCommandHandler> logger, 
         IPayStackService payStackService, 
@@ -70,7 +70,7 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
         _token = token;
     }
     
-    public async Task<Result<Unit>> Handle(ApproveLoanByCustomerCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Unit>> Handle(RegenerateOtpFromPaystackCommand request, CancellationToken cancellationToken)
     {
         var userEmail = _token.GetEmail();
 
@@ -90,9 +90,17 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
                                                   .FirstOrDefaultAsync(x => x.Id == request.LoanRequestId, cancellationToken);
         if (loanRequest == null)
             return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", "Loan request not found"));
-        
-        //Call payStack to disburse money in customer account
 
+        var doesApprovalExist = await _trivistaDbContext.DisbursementApproval.AsNoTracking().
+            Where(x => x.LoanRequestId == loanRequest.Id).Select(x => x).FirstOrDefaultAsync(cancellationToken);
+        if (doesApprovalExist != null)
+        {
+            if(doesApprovalExist.Status == DisbursedLoanStatus.Disbursed)
+                return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "Loan has alrady been disbursed"));
+            _trivistaDbContext.DisbursementApproval.Remove(doesApprovalExist);
+        }
+
+        //Call payStack to disburse money in customer account
         var accountDetails = await _payStackService.ResolveAccount(loanRequest.SalaryDetails.SalaryAccountNumber, loanRequest.SalaryDetails.BankCode);
         
         if(!accountDetails.Status)
@@ -125,41 +133,13 @@ public sealed record ApproveLoanByCustomerCommandHandler: IRequestHandler<Approv
             _logger.LogInformation(payment.Message);
             return new Result<Unit>(ExceptionManager.Manage("Customer Loan Approval", "Something went wrong, please contact support"));
         }
-        
+
         var disbursementApproval = DisbursementApproval.Factory.Build(Guid.NewGuid(), loanRequest, "", payment.Data.TransferCode, transactionReferenceNumber.ToString());
         
         await _trivistaDbContext.DisbursementApproval.AddAsync(disbursementApproval, cancellationToken);
-        
-        loanRequest.ApproveLoanByCustomer();
-        
-        // startDate = loanRequest.RepaymentSchedules.OrderBy(x=>x.DueDate).FirstOrDefault().DueDate.ToString(),
-        //EndDate = loanRequest.RepaymentSchedules.OrderByDescending(x=>x.DueDate).FirstOrDefault().DueDate.ToString(),
-        //MaxNoOfDebits = loanRequest.RepaymentSchedules.Count
-        
-        // //Call Remitta
-        // var remittaMandateResponse = await _remittaService.SalaryHistory(new GetSalaryHistoryRequestDto()
-        // {
-        //     FirstName = loanRequest.kycDetails.CustomerFirstName,
-        //     LastName = loanRequest.kycDetails.CustomerLastName,
-        //     MiddleName = loanRequest.kycDetails.CustomerMiddleName,
-        //     AccountNumber = loanRequest.SalaryDetails.SalaryAccountNumber,
-        //     BankCode = bank.SortCode,
-        //     Bvn = loanRequest.Bvn
-        // }, loanRequest.Id.ToString());
-        //
-        // if (remittaMandateResponse is { HasData: true } && remittaMandateResponse.Status.ToUpper() == "success".ToUpper() && remittaMandateResponse.HasData)
-        // {
-        //     var customerFromDb = await _trivistaDbContext.Customer.FirstOrDefaultAsync(x => x.Id == loanRequest.CustomerId, new CancellationToken());
-        //     customerFromDb.IsRemittaUser();
-        //     //customerFromDb.SetRemittaMandate(remittaMandateResponse);
-        //     
-        //     var result = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
-        //
-        //     return result < 0 ? new Result<Unit>(ExceptionManager.Manage("Repayment Schedule", "Unable to approve loan request.")) : Unit.Value;  
-        // }
 
         var result = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
         
-        return result < 0 ? new Result<Unit>(ExceptionManager.Manage("Repayment Schedule", "Unable to approve loan request.")) : Unit.Value;
+        return result < 0 ? new Result<Unit>(ExceptionManager.Manage("Loan request", "Unable to gegerate paystack token.")) : Unit.Value;
     }
 }

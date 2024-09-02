@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Trivista.LoanApp.ApplicationCore.Commons.Pagination;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
+using Trivista.LoanApp.ApplicationCore.Enums;
 using Trivista.LoanApp.ApplicationCore.Extensions;
 
 namespace Trivista.LoanApp.ApplicationCore.Features.Customer;
@@ -73,7 +74,7 @@ public sealed record GetCustomersDto
     
     public string Location { get; set; }
     
-    public bool IsRemittaUser { get; set; }
+    public string IsRemittaUser { get; set; }
 
     public string PostalCode { get; set; }
 
@@ -96,8 +97,8 @@ public sealed record GetCustomersDto
             State = customer.State,
             City = customer.City,
             PostalCode = customer.PostCode,
-            Location = customer.Location,
-            IsRemittaUser = customer.CustomerRemitterInformation == null ? false : customer.CustomerRemitterInformation.IsRemittaUser!
+            Location = customer.Location!,
+            IsRemittaUser = customer.CustomerRemitterInformation == null ? RemittaUser.NotDetermined.ToString() : customer.CustomerRemitterInformation.IsRemittaUser!
         };
     }
 }
@@ -134,15 +135,14 @@ public sealed class GetCustomersQueryHandler : IRequestHandler<GetCustomersQuery
         
         if (!string.IsNullOrEmpty(request.Remitta))
         {
-            bool isRemittaUser = Convert.ToBoolean(request.Remitta);
-            loanRequestList = loanRequestList.Where(x => x.CustomerRemitterInformation.IsRemittaUser == isRemittaUser);
+            loanRequestList = loanRequestList.Where(x => x.CustomerRemitterInformation.IsRemittaUser == request.Remitta);
         }
 
         loanRequestList = loanRequestList.Where(x=>x.UserType == "Customer");
         
         var pagedResult = await PaginationData.PaginateAsync(loanRequestList, request.PageNumber, request.ItemsPerPage);
 
-        List<GetCustomersDto> customers = loanRequestList.Cast<GetCustomersDto?>().ToList();
+        List<GetCustomersDto> customers = loanRequestList.Cast<GetCustomersDto?>().ToList()!;
 
         return new PaginationInfo<GetCustomersDto>(customers, 
                                                      pagedResult.CurrentPage, 

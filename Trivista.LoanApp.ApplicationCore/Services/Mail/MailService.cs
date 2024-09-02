@@ -3,9 +3,11 @@ using System.Text;
 using ElasticEmail.Api;
 using ElasticEmail.Client;
 using ElasticEmail.Model;
+using FluentEmail.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using SendGrid.Helpers.Errors.Model;
 using Trivista.LoanApp.ApplicationCore.Commons.Options;
 
 namespace Trivista.LoanApp.ApplicationCore.Services.Mail;
@@ -15,25 +17,45 @@ public class MailService: IMailService
     private static MailOptions _mailOptions;
     private readonly HttpClient _client;
     private readonly ILogger<MailService> _logger;
+    private static SendGridOption _sndGridOptions;
+    private readonly IFluentEmail _fluentEmail;
 
-    public MailService(IOptions<MailOptions> mailOptions, HttpClient client, ILogger<MailService> logger)
+    public MailService(
+        IOptions<MailOptions> mailOptions,
+        IOptions<SendGridOption> sndGridOptions,
+        HttpClient client,
+        ILogger<MailService> logger,
+        IFluentEmail fluentEmail)
     {
         _client = client;
         _logger = logger;
         _mailOptions = mailOptions.Value;
+        _sndGridOptions = sndGridOptions.Value;
+        _fluentEmail = fluentEmail;
     }
-    
+
+    public void BuildLoanDueMessage(string to, string customerName, decimal approvedLoanAmount, int approvedLoanTenure, decimal RepaymentAmount, DateTime dueDate)
+    {
+        var builder = new MailBuilder();
+        var mailObject = builder.WithToEmail(to)
+            .WithFromEmail(_mailOptions.From)
+            .WithSubject(_mailOptions.RepaymentSubject)
+            .BuildLoanDueMessage(to, customerName, approvedLoanAmount, approvedLoanTenure, RepaymentAmount, dueDate)
+            .BuildMailDto(); 
+        SendEmailAsync(mailObject);
+    }
+
     public void BuildPaymentSuccessfulMessage(string to, string transactionType, string name, decimal amount, string transactionTime, string transactionReference)
     {
         var builder = new MailBuilder();
         var mailObject = builder.WithToEmail(to)
             .WithFromEmail(_mailOptions.From)
             .WithSubject(_mailOptions.RepaymentSubject)
-            .BuildPaymentSuccessfulMessage(transactionType, name, amount,  transactionTime,  transactionReference)
-            .BuildMailDto(); 
+            .BuildPaymentSuccessfulMessage(transactionType, name, amount, transactionTime, transactionReference)
+            .BuildMailDto();
         SendEmailAsync(mailObject);
     }
-    
+
     public void BuildLoanRequestMessage(string to, string name, decimal loanAmount, string loanPurpose)
     {
         var builder = new MailBuilder();
@@ -90,71 +112,116 @@ public class MailService: IMailService
         SendEmailAsync(mailObject);
     }
 
-    private void SendEmail(MailObject dto)
-    { 
-        Configuration config = new Configuration();
-        // Configure API key authorization: apikey
-        config.ApiKey.Add("X-ElasticEmail-ApiKey", _mailOptions.APIKey);
-        var apiInstance = new EmailsApi(config);
-        var to = new List<string> { dto.To };
-        var recipients = new TransactionalRecipient(to: to);
-        EmailTransactionalMessageData emailData = new EmailTransactionalMessageData(recipients: recipients)
-        {
-            Content = new EmailContent
-            {
-                Body = new List<BodyPart>()
-            }
-        };
-        BodyPart htmlBodyPart = new BodyPart
-        {
-            ContentType = BodyContentType.HTML,
-            Charset = "utf-8",
-            Content = dto.BodyAmp
-        };
-        BodyPart plainTextBodyPart = new BodyPart
-        {
-            ContentType = BodyContentType.PlainText,
-            Charset = "utf-8",
-            Content = dto.BodyAmp
-        };
-        emailData.Content.Body.Add(htmlBodyPart);
-        emailData.Content.Body.Add(plainTextBodyPart);
-        emailData.Content.From = dto.From;
-        emailData.Content.Subject = dto.Subject;
+    //private void SendEmail(MailObject dto)
+    //{ 
+    //    Configuration config = new Configuration();
+    //    // Configure API key authorization: apikey
+    //    config.ApiKey.Add("X-ElasticEmail-ApiKey", _mailOptions.APIKey);
+    //    var apiInstance = new EmailsApi(config);
+    //    var to = new List<string> { dto.To };
+    //    var recipients = new TransactionalRecipient(to: to);
+    //    EmailTransactionalMessageData emailData = new EmailTransactionalMessageData(recipients: recipients)
+    //    {
+    //        Content = new EmailContent
+    //        {
+    //            Body = new List<BodyPart>()
+    //        }
+    //    };
+    //    BodyPart htmlBodyPart = new BodyPart
+    //    {
+    //        ContentType = BodyContentType.HTML,
+    //        Charset = "utf-8",
+    //        Content = dto.BodyAmp
+    //    };
+    //    BodyPart plainTextBodyPart = new BodyPart
+    //    {
+    //        ContentType = BodyContentType.PlainText,
+    //        Charset = "utf-8",
+    //        Content = dto.BodyAmp
+    //    };
+    //    emailData.Content.Body.Add(htmlBodyPart);
+    //    emailData.Content.Body.Add(plainTextBodyPart);
+    //    emailData.Content.From = dto.From;
+    //    emailData.Content.Subject = dto.Subject;
 
-        try
-        {
-            // Send Bulk Emails
-            _logger.LogInformation("ABout sending mail");
-            var result = apiInstance.EmailsTransactionalPost(emailData);
-            _logger.LogInformation("Mail sent ith ID {@ID}, sent", result.MessageID);
-        }
-        catch (ApiException  ex)
-        {
-            _logger.LogError(ex, "Exception when calling EmailsApi.EmailsPost: " + ex.Message);
-            _logger.LogError(ex,  "Status Code: " + ex.ErrorCode);
-            _logger.LogError(ex, "An error occured, see stack trace: {@StackTrace}", ex.StackTrace);
-        }
-    }
+    //    try
+    //    {
+    //        // Send Bulk Emails
+    //        _logger.LogInformation("ABout sending mail");
+    //        var result = apiInstance.EmailsTransactionalPost(emailData);
+    //        _logger.LogInformation("Mail sent ith ID {@ID}, sent", result.MessageID);
+    //    }
+    //    catch (ApiException  ex)
+    //    {
+    //        _logger.LogError(ex, "Exception when calling EmailsApi.EmailsPost: " + ex.Message);
+    //        _logger.LogError(ex,  "Status Code: " + ex.ErrorCode);
+    //        _logger.LogError(ex, "An error occured, see stack trace: {@StackTrace}", ex.StackTrace);
+    //    }
+    //}
+
+
     
-    private async Task SendEmailAsync(MailObject model)
+    //private async Task SendEmailAsync(MailObject model)
+    //{
+    //    try
+    //    {
+    //        var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
+    //        // Send Bulk Emails
+    //        _logger.LogInformation("Sending email");
+    //        var result = _client.PostAsync("/sendMail", content).GetAwaiter().GetResult();
+    //        if (result.IsSuccessStatusCode)
+    //        {
+    //            var con = result.Content.ReadAsStringAsync();
+    //        }
+    //    }
+    //    catch (ApiException  ex)
+    //    {
+    //        _logger.LogError(ex, "Exception when calling EmailsApi.EmailsPost: {@Message}",  ex.Message);
+    //        _logger.LogInformation("Status Code: {@StatusCode} ", ex.ErrorCode);
+    //        _logger.LogInformation(ex.StackTrace);
+    //    }
+    //}
+
+
+    public async Task SendEmailAsync(MailObject model)
     {
         try
         {
-            var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-            // Send Bulk Emails
-            _logger.LogInformation("Sending email");
-            var result = _client.PostAsync("/sendMail", content).GetAwaiter().GetResult();
-            if (result.IsSuccessStatusCode)
+            var fluentEmail = _fluentEmail.SetFrom(_sndGridOptions.DefaultFromEmail).Subject(model.Subject).To(model.To);
+
+            var response = await fluentEmail.Tag(Guid.NewGuid().ToString()).UsingTemplate(model.BodyAmp, model).SendAsync();
+
+
+            if (response.Successful)
             {
-                var con = result.Content.ReadAsStringAsync();
+                await Task.CompletedTask;
+                return;
+            }
+
+            _logger.LogInformation("Mail sending was not successful with message: {Message}", response);
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while sending mail");
+            var errorResponse = JsonConvert.DeserializeObject<SendGridErrorResponse>(ex.Message);
+            switch (errorResponse!.ErrorHttpStatusCode)
+            {
+                case 401:
+                    _logger.LogError(ex, errorResponse.SendGridErrorMessage);
+                    break;
+                case 400:
+                    _logger.LogError(ex, errorResponse.SendGridErrorMessage);
+                    break;
+                case 429:
+                    _logger.LogError(ex, errorResponse.SendGridErrorMessage);
+                    break;
+                case 500:
+                    _logger.LogError(ex, errorResponse.SendGridErrorMessage);
+                    break;
             }
         }
-        catch (ApiException  ex)
-        {
-            _logger.LogError(ex, "Exception when calling EmailsApi.EmailsPost: {@Message}",  ex.Message);
-            _logger.LogInformation("Status Code: {@StatusCode} ", ex.ErrorCode);
-            _logger.LogInformation(ex.StackTrace);
-        }
+
+        await Task.CompletedTask;
     }
 }

@@ -39,7 +39,7 @@ public partial class CustomerDbConfiguration : IEntityTypeConfiguration<Customer
         builder.Property(x => x.MbsBankStatementTicketAndPassword).IsRequired(false).HasColumnType("nvarchar(max)");
         builder.Property(x => x.BankStatementAnalysis).IsRequired(false).HasColumnType("nvarchar(max)");
         //Customer Remitta Information
-        builder.OwnsOne(x => x.CustomerRemitterInformation).Property(x => x.IsRemittaUser).HasColumnType("bit");
+        builder.OwnsOne(x => x.CustomerRemitterInformation).Property(x => x.IsRemittaUser).HasColumnType("varchar").HasMaxLength(20);
         builder.OwnsOne(x => x.CustomerRemitterInformation).Property(x => x.AverageSixMonthsSalary).HasColumnType("decimal(18, 2)");
         builder.OwnsOne(x => x.CustomerRemitterInformation).Property(x => x.OtherLoansCollected).HasColumnType("decimal(18, 2)");
         //Proof of address

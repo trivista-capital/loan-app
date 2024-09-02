@@ -7,7 +7,7 @@ public interface IMailService
 
     void BuildLoanApprovedByAdminMessage(string to, string name, decimal loanAmount, int loanTenure,
         decimal interestRate);
-
+    void BuildLoanDueMessage(string to, string customerName, decimal approvedLoanAmount, int approvedLoanTenure, decimal RepaymentAmount, DateTime dueDate);
     void BuildBuildNewTicketRaisedMessage(string to, string adminName, Guid ticketId, string customerName,
         DateTime dateTimeOfTicket, string issueCategory, string descriptionOfIssue);
 

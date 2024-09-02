@@ -29,12 +29,14 @@
       <Folder Include="Data\Migrations" />
       <Folder Include="Events\IntegrationEvents" />
       <Folder Include="Logging" />
+      <Folder Include="Dto\" />
       <Folder Include="Webhook" />
       <Folder Include="Features\Role\" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Carter" Version="6.0.0" />
+      <PackageReference Include="Coravel" Version="5.0.2" />
       <PackageReference Include="Faker.Net" Version="2.0.154" />
       <PackageReference Include="FluentValidation" Version="11.5.2" />
       <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.5.2" />
@@ -66,6 +68,10 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
+		<PackageReference Include="FluentEmail.Core" Version="3.0.2" />
+		<PackageReference Include="FluentEmail.Razor" Version="3.0.2" />
+		<PackageReference Include="FluentEmail.SendGrid" Version="3.0.2" />
+		<PackageReference Include="FluentEmail.Smtp" Version="3.0.2" />
     </ItemGroup>
 
     <ItemGroup>

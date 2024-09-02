@@ -114,7 +114,17 @@ public static class DependencyInjection
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(15)
         }).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
-        
+
+        services.AddHttpClient<IRecovaService, RecovaService>((provider, client) =>
+        {
+            var serviceProvider = provider.GetService<IConfiguration>();
+            string baseAddy = serviceProvider.GetSection("RecovaOption").GetSection("BaseUrl").Value;
+            client.BaseAddress = new Uri(baseAddy);
+        }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler()
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(15)
+        }).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+
         return services;
     }
     
@@ -127,5 +137,17 @@ public static class DependencyInjection
         loan.SetMaximumTenure(loanEntity.MaximumTenure);
         loan.SetMaximumLoanAmount(loanEntity.MaximumLoanAmount);
         return loan;
+    }
+
+    public static void AddSendGrid(this WebApplicationBuilder builder)
+    {
+        var sendGridOptions = builder.Services.BuildServiceProvider().
+                  GetRequiredService<IOptionsMonitor<SendGridOption>>().
+                  CurrentValue;
+
+        builder.Services.
+            AddFluentEmail(sendGridOptions.DefaultFromEmail).
+            AddSendGridSender(sendGridOptions.SendGridApiKey)
+            .AddRazorRenderer();
     }
 }

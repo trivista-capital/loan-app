@@ -56,13 +56,13 @@ public sealed class GetTicketDto
             Created = ticket.Created,
             Messages = ticket.Messages
                                 .Select(x=> new GetTicketMessages(x.TicketId, x.Message, EnumHelpers.Convert(x.Initiator), 
-                                    x.InitiatorId))
+                                    x.InitiatorId, x.Created))
                                 .ToList()
         };
     }
 }
 
-public sealed record GetTicketMessages(Guid TicketId, string Message, string Initiator, Guid InitiatorId);
+public sealed record GetTicketMessages(Guid TicketId, string Message, string Initiator, Guid InitiatorId, DateTime date);
 
 public sealed record GetTicketQuery(Guid Id) : IRequest<Result<GetTicketDto>>;
 

@@ -7,8 +7,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Trivista.LoanApp.ApplicationCore.Commons.Helpers;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
+using Trivista.LoanApp.ApplicationCore.Enums;
 using Trivista.LoanApp.ApplicationCore.Exceptions;
 using Trivista.LoanApp.ApplicationCore.Extensions;
 using Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
@@ -59,14 +62,23 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
     private readonly TrivistaDbContext _trivistaDbContext;
 
     private readonly ILogger<CheckRemitaStatusHandler> _logger;
+    private readonly TokenManager _token;
 
-    public CheckRemitaStatusHandler(IMbsService mbsService, TrivistaDbContext trivistaDbContext, IRemittaService remittaService, IPayStackService payStackService, ILogger<CheckRemitaStatusHandler> logger)
+
+    public CheckRemitaStatusHandler(
+        IMbsService mbsService,
+        TrivistaDbContext trivistaDbContext,
+        IRemittaService remittaService,
+        IPayStackService payStackService,
+        ILogger<CheckRemitaStatusHandler> logger,
+        TokenManager token)
     {
         _mbsService = mbsService;
         _trivistaDbContext = trivistaDbContext;
         _remittaService = remittaService;
         _payStackService = payStackService;
         _logger = logger;
+        _token = token;
     }
 
     public async Task<Result<bool>> Handle(CheckRemitaStatusQuery request, CancellationToken cancellationToken)
@@ -77,7 +89,10 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
         
         if (!exceptionResult.IsSuccess)
             return exceptionResult;
-            
+
+        var email = _token.GetEmail();
+        var customer = await _trivistaDbContext.Customer.FirstOrDefaultAsync(x => x.Email == email, cancellationToken);
+
         //Call Remitta
         var remitaMandateResponse = await _remittaService.SalaryHistory(new GetSalaryHistoryRequestDto()
         {
@@ -92,18 +107,55 @@ public sealed class CheckRemitaStatusHandler : IRequestHandler<CheckRemitaStatus
         if(remitaMandateResponse == null)
         {
             _logger.LogError("Unable to get response from remita service in CheckRemitaStatusHandler");
-            return new Result<bool>(ExceptionManager.Manage("Loan Request", "Unable to check customer status"));
+            customer!.SetCustomerRemittance(new Entities.ValueObjects.CustomerRemitterInformation()
+            {
+                IsRemittaUser = RemittaUser.NotDetermined.ToString(),
+                AverageSixMonthsSalary = customer.CustomerRemitterInformation.AverageSixMonthsSalary,
+                OtherLoansCollected = customer.CustomerRemitterInformation.OtherLoansCollected
+            });
+            return new Result<bool>(ExceptionManager.Manage("Remitta Status", "Unable to determine customer status"));
         }
 
-        return remitaMandateResponse switch
+        if (remitaMandateResponse.Status.ToUpper() == "success".ToUpper() && remitaMandateResponse.ResponseMsg == "SUCCESS" && remitaMandateResponse.Data
+              .SalaryPaymentDetails.Any())
         {
-            { HasData: true } when remitaMandateResponse.Status.ToUpper() == "success".ToUpper() &&
-                                   remitaMandateResponse.ResponseMsg == "SUCCESS" => remitaMandateResponse.Data
-                .SalaryPaymentDetails.Any(),
-            { HasData: false } when remitaMandateResponse.Status == null || remitaMandateResponse.Status.ToUpper() == "fail".ToUpper() &&
-                remitaMandateResponse.ResponseMsg != "SUCCESS" => new Result<bool>(new TrivistaException(remitaMandateResponse.ResponseMsg, 400)),
-            _ => new Result<bool>(ExceptionManager.Manage("Statement", "Unable to determine remita status"))
-        };
+            customer!.SetCustomerRemittance(new Entities.ValueObjects.CustomerRemitterInformation()
+            {
+                IsRemittaUser = RemittaUser.IsRemittaUser.ToString(),
+                AverageSixMonthsSalary = customer.CustomerRemitterInformation.AverageSixMonthsSalary,
+                OtherLoansCollected = customer.CustomerRemitterInformation.OtherLoansCollected
+            });
+
+            _ = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
+
+            return true;
+        }
+        else if (remitaMandateResponse.Status.ToUpper() == "fail".ToUpper() && remitaMandateResponse.ResponseMsg != "SUCCESS" && remitaMandateResponse.Data == null || !remitaMandateResponse.Data.SalaryPaymentDetails.Any())
+        {
+            customer!.SetCustomerRemittance(new Entities.ValueObjects.CustomerRemitterInformation()
+            {
+                IsRemittaUser = RemittaUser.NotRemittaUser.ToString(),
+                AverageSixMonthsSalary = customer.CustomerRemitterInformation.AverageSixMonthsSalary,
+                OtherLoansCollected = customer.CustomerRemitterInformation.OtherLoansCollected
+            });
+
+            _ = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
+
+            return false;
+        }
+        else
+        {
+            customer!.SetCustomerRemittance(new Entities.ValueObjects.CustomerRemitterInformation()
+            {
+                IsRemittaUser = RemittaUser.NotDetermined.ToString(),
+                AverageSixMonthsSalary = customer.CustomerRemitterInformation.AverageSixMonthsSalary,
+                OtherLoansCollected = customer.CustomerRemitterInformation.OtherLoansCollected
+            });
+
+            _ = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
+
+            return new Result<bool>(ExceptionManager.Manage("Remitta Status", "Unable to determine remita status"));
+        }
     }
 }
 
