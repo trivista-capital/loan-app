@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  trivista-loan-app:
+    build:
+      context: .
+      dockerfile: Trivista.LoanApp.Api/Dockerfile
+    image: loan-app:latest
+    container_name: trivista-loan-app 
+    restart: unless-stopped
+    ports:
+      - 8090:8080
+    networks:
+      - trivista_capital
+
+networks:
+  keycloak:
+    external: trivista_capital
