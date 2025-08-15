@@ -1,0 +1,10 @@
+pipeline{
+    agent any
+    stages{
+        stage("Buld Trivista loan-app container using docker-compose"){
+            steps{
+                sh 'sudo docker compose -f docker-compose-prod.yml up -d --build --force-recreate'
+            }
+        }
+    }
+}
