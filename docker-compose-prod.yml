@@ -11,3 +11,7 @@ services:
       - 8090:8080
     networks:
       - trivista_capital
+
+networks:
+  trivista_capital:
+    external: true
