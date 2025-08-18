@@ -11,6 +11,8 @@ services:
       - 8090:80
     networks:
       - trivista_capital
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
 
 networks:
   trivista_capital:
