@@ -20,6 +20,7 @@ public class CloseReOpenTicketController: ICarterModule
     {
         app.MapPost("/closeOpenTicket", TicketsHandler)
             .WithName("Close open ticket")
+            .RequireAuthorization()
             .WithTags("Ticket Management");
     }
 

@@ -21,8 +21,8 @@ public class AllTickets: ICarterModule
     {
         app.MapGet("/tickets", TicketsHandler)
             .WithName("Get all tickets")
-            .WithTags("Ticket Management");
-        //.RequireAuthorization();
+            .WithTags("Ticket Management")
+        .RequireAuthorization();
     }
 
     private static async Task<IResult> TicketsHandler(IMediator mediator, 

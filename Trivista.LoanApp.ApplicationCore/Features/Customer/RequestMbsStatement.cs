@@ -20,6 +20,7 @@ public class RequestMbsStatementController: ICarterModule
     {
         app.MapPost("/requestMbsStatement", RequestMbsStatementHandler)
             .WithName("Request Mbs Statement")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
     

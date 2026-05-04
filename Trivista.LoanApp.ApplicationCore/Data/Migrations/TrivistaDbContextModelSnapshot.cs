@@ -61,10 +61,10 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         new
                         {
                             Id = new Guid("3e7d9440-48d7-4174-b9c5-0ea5be7d9e7d"),
-                            CreatedOn = new DateTime(2023, 12, 14, 10, 28, 3, 872, DateTimeKind.Utc).AddTicks(6082),
+                            CreatedOn = new DateTime(2024, 9, 8, 11, 20, 6, 187, DateTimeKind.Utc).AddTicks(6345),
                             Description = "Default super admin role",
                             IsDeleted = false,
-                            LastModified = new DateTime(2023, 12, 14, 10, 28, 3, 872, DateTimeKind.Utc).AddTicks(6086),
+                            LastModified = new DateTime(2024, 9, 8, 11, 20, 6, 187, DateTimeKind.Utc).AddTicks(6353),
                             Name = "SuperAdmin"
                         });
                 });
@@ -245,6 +245,40 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                     b.ToTable("ApprovalWorkflowConfiguration");
                 });
 
+            modelBuilder.Entity("Trivista.LoanApp.ApplicationCore.Entities.ClientApiKeyConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ApiKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(3000)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Deleted")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClientApiKey");
+                });
+
             modelBuilder.Entity("Trivista.LoanApp.ApplicationCore.Entities.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -354,15 +388,15 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                         new
                         {
                             Id = new Guid("363b37a0-c306-4472-a405-4b576334cca0"),
-                            Created = new DateTime(2023, 12, 14, 10, 28, 3, 812, DateTimeKind.Utc).AddTicks(8980),
+                            Created = new DateTime(2024, 9, 8, 11, 20, 6, 118, DateTimeKind.Utc).AddTicks(8271),
                             Deleted = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DeletedBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Dob = "",
-                            Email = "femi.ibitolu@gmail.com",
-                            FirstName = "Babafemi",
+                            Email = "tgslimited@gmail.com",
+                            FirstName = "Admin",
                             IsDeleted = false,
                             LastModifiedBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            LastName = "Ibitolu",
+                            LastName = "Admin",
                             LoaneeTypes = 0,
                             Location = "default",
                             MbsRequestStatementResponseCode = 0,
@@ -592,11 +626,17 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsMandateDirectDebitApproved")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("LastModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("LoanApplicationStatus")
                         .HasColumnType("int");
+
+                    b.Property<string>("MandateDirectDebitApproval")
+                        .HasColumnType("nvarchar(3000)");
 
                     b.HasKey("Id");
 
@@ -635,6 +675,9 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                     b.Property<bool>("IsDue")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsRecovered")
+                        .HasColumnType("bit");
+
                     b.Property<Guid>("LastModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -647,6 +690,10 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                     b.Property<string>("PaymentType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Recover")
+                        .HasMaxLength(3000)
+                        .HasColumnType("nvarchar(3000)");
 
                     b.Property<decimal>("RepaymentAmount")
                         .HasColumnType("decimal(18, 2)");
@@ -854,8 +901,10 @@ namespace Trivista.LoanApp.ApplicationCore.Data.Migrations
                             b1.Property<decimal>("AverageSixMonthsSalary")
                                 .HasColumnType("decimal(18, 2)");
 
-                            b1.Property<bool>("IsRemittaUser")
-                                .HasColumnType("bit");
+                            b1.Property<string>("IsRemittaUser")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("varchar");
 
                             b1.Property<decimal>("OtherLoansCollected")
                                 .HasColumnType("decimal(18, 2)");

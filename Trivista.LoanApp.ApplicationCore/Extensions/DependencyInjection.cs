@@ -12,6 +12,7 @@ using Trivista.LoanApp.ApplicationCore.Data;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Entities;
 using Trivista.LoanApp.ApplicationCore.Features.LoanCalculation;
+using Trivista.LoanApp.ApplicationCore.Filters;
 using Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
 using Trivista.LoanApp.ApplicationCore.Infrastructure.MessageBroker;
 using Trivista.LoanApp.ApplicationCore.Interfaces;
@@ -26,6 +27,9 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("TrivistaDbConnection");
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddSingleton<ApiKeyAuthorizationFilter>();
+
+        services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             // cfg.AddBehavior<IPipelineBehavior<Ping, Pong>, PingPongBehavior>();
@@ -59,6 +63,7 @@ public static class DependencyInjection
         services.AddTransient<IRemittaService, RemittaService>();
         services.AddTransient<IMbsService, MbsService>();
         services.AddTransient<IIndicina, Indicina>();
+        services.AddTransient<IApiKeyValidator, ApiKeyValidator>();
         services.AddHttpClient<ISmileIdService, SmileIdService>((provider, client) =>
         {
             var serviceProvider = provider.GetService<IOptions<SmileIdOption>>(); 
@@ -98,7 +103,7 @@ public static class DependencyInjection
         services.AddHttpClient<IMailService, MailService>((provider, client) =>
         {
             var serviceProvider = provider.GetService<IConfiguration>();
-            string baseAddy = serviceProvider.GetSection("TrivistaMailServiceBaseAddress").Value;
+            string baseAddy = serviceProvider!.GetSection("TrivistaMailServiceBaseAddress").Value!;
             client.BaseAddress = new Uri(baseAddy);
         }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler()
         {
@@ -108,13 +113,24 @@ public static class DependencyInjection
         services.AddHttpClient<IIndicina, Indicina>((provider, client) =>
         {
             var serviceProvider = provider.GetService<IConfiguration>();
-            string baseAddy = serviceProvider.GetSection("IndicinaOption").GetSection("BaseUrl").Value;
+            string baseAddy = serviceProvider!.GetSection("IndicinaOption").GetSection("BaseUrl").Value!;
             client.BaseAddress = new Uri(baseAddy);
         }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler()
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(15)
         }).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
-        
+
+        services.AddHttpClient<IRecovaService, RecovaService>((provider, client) =>
+        {
+            var serviceProvider = provider.GetService<IConfiguration>();
+            string baseAddy = serviceProvider!.GetSection("RecovaOption").GetSection("BaseUrl").Value!;
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBUElLZXkiOiJlNTExNTgxNS1jNDAwLTQ4MDYtODBhMi1iOWY2MjQ5OWE1OGIiLCJCZWxscyI6IkFOU1pYSVNWU0ZXRyIsIkluc3RpdHV0aW9uSWQiOiIzMDE3MCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ik9GSSIsImp0aSI6IjQ5YTQ5MTBjLThjMTYtNDRlOC05ODBiLWMwMjA3MmFmNWM5MiIsImV4cCI6MjA0MDkzMzc1NywiaXNzIjoic3RhZ2luZy5yZWNvdmEubmciLCJhdWQiOiJzdGFnaW5nLnJlY292YS5uZyJ9.jc0xXRVwtKwLhFCfVnmXk1xvYImuiLyVLYymRhkrMG8");
+            client.BaseAddress = new Uri(baseAddy);
+        }).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler()
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(15)
+        }).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+
         return services;
     }
     
@@ -127,5 +143,17 @@ public static class DependencyInjection
         loan.SetMaximumTenure(loanEntity.MaximumTenure);
         loan.SetMaximumLoanAmount(loanEntity.MaximumLoanAmount);
         return loan;
+    }
+
+    public static void AddSendGrid(this WebApplicationBuilder builder)
+    {
+        var sendGridOptions = builder.Services.BuildServiceProvider().
+                  GetRequiredService<IOptionsMonitor<SendGridOption>>().
+                  CurrentValue;
+
+        builder.Services.
+            AddFluentEmail(sendGridOptions.DefaultFromEmail).
+            AddSendGridSender(sendGridOptions.SendGridApiKey)
+            .AddRazorRenderer();
     }
 }

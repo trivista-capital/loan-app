@@ -22,8 +22,8 @@ public class LogTicketController: ICarterModule
     {
         app.MapPost("/logTicket", LogTicketHandler)
             .WithName("Log ticket")
-            .WithTags("Ticket Management");
-            //.RequireAuthorization();
+            .WithTags("Ticket Management")
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> LogTicketHandler(IMediator mediator, [FromBody] AddTicketDto ticket)

@@ -21,10 +21,11 @@ public class LoanCalculatorController: ICarterModule
     {
         app.MapPost("/calculateLoan", HandlePost)
             .WithName("calculateLoan")
+            .RequireAuthorization()
             .WithTags("Loan Calculator");
     }
 
-    private static async Task<IResult> HandlePost(IMediator mediator, IOptions<Loan> loanOptions, [FromBody]LoanCalculatorRequestCommand model)
+    private static async Task<IResult> HandlePost(IMediator mediator , [FromBody]LoanCalculatorRequestCommand model)
     {
         var result = await mediator.Send(model);
         return result.ToOk(x => x);

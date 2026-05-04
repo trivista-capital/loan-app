@@ -33,7 +33,19 @@ public class MailBuilder: IMailBuilder
 
         return this;
     }
-    
+
+    public MailBuilder BuildLoanDueMessage(string to, string customerName, decimal approvedLoanAmount, int approvedLoanTenure, decimal repaymentAmount, DateTime dueDate)
+    {
+        var rawMailTemplate = FileHelper.ExtractMailTemplate("loan-due.html");
+        _message = rawMailTemplate.Replace("{Customer's Name}", customerName)
+                                  .Replace("{Approved Loan Amount}", approvedLoanAmount.ToString())
+                                  .Replace("{Approved Loan Tenure}", approvedLoanTenure.ToString())
+                                  .Replace("{Repayment Amount}", repaymentAmount.ToString())
+                                  .Replace("{Due Date}", dueDate.ToString());
+
+        return this;
+    }
+
     public MailBuilder BuildLoanRequestMessage(string name, decimal loanAmount, string loanPurpose)
     {
         var rawMailTemplate = FileHelper.ExtractMailTemplate("page7-loan-request.html");

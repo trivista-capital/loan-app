@@ -19,6 +19,7 @@ public class ReProcessFailedRemitaLoanDisbursementController: ICarterModule
     {
         app.MapPost("/disbursement/loanRequest/{loanRequestId}/remita/reProcessFailedRemitaDisbursement", ReProcessFailedRemitaLoanDisbursementHandler)
             .WithTags("Remita")
+            .RequireAuthorization()
             .WithName("Reprocess Failed Disbursement");
     }
 

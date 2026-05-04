@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Trivista.LoanApp.ApplicationCore.Commons.Enums;
 using Trivista.LoanApp.ApplicationCore.Commons.Helpers;
 using Trivista.LoanApp.ApplicationCore.Commons.Pagination;
@@ -225,10 +226,12 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
 {
     private readonly TrivistaDbContext _trivistaDbContext;
     private readonly TokenManager _token;
-    public GetLoanRequestsQueryHandler(TrivistaDbContext trivistaDbContext, TokenManager token)
+    private readonly ILogger<GetLoanRequestsQueryHandler> _logger;
+    public GetLoanRequestsQueryHandler(TrivistaDbContext trivistaDbContext, TokenManager token, ILogger<GetLoanRequestsQueryHandler> logger)
     {
         _trivistaDbContext = trivistaDbContext;
         _token = token;
+        _logger = logger;
     }
 
     public async Task<Result<LoanRequestsWrapper>> Handle(GetLoanRequestsQuery request, CancellationToken cancellationToken)
@@ -237,56 +240,65 @@ public sealed class GetLoanRequestsQueryHandler : IRequestHandler<GetLoanRequest
         var roleId = _token.GetRoleId();
         var email = _token.GetEmail();
 
-        if (string.IsNullOrEmpty(roleId))
-            return new Result<LoanRequestsWrapper>(ExceptionManager.Manage("Loan Request", "Role can not be specified"));
-        
-        var listOfLoanRequests = new List<GetLoanRequests>();
-        
-        IQueryable<LoanRequest> loanRequestList = Enumerable.Empty<LoanRequest>().AsQueryable();
-        
-        loanRequestList = _trivistaDbContext.LoanRequest.Include(x => x.Customer)
-            .Include(x => x.ApprovalWorkflow)
-            .ThenInclude(x => x.ApprovalWorkflowApplicationRole)
-            //.Include(x => x.RepaymentSchedules.OrderBy(x => x.DueDate))
-            .OrderByDescending(x => x.Created)
-            .AsQueryable();
-        
-        if (roleId != default)
+        try
         {
-            loanRequestList = loanRequestList.Where(x=>x.ApprovalWorkflow.ApprovalWorkflowApplicationRole.Any(x=>x.RoleId == Guid.Parse(roleId)));
-        }
-        if (request.Status != null)
-        {
-            loanRequestList = loanRequestList.Where(x=>x.LoanApplicationStatus == request.Status);
-        }
-        if (!string.IsNullOrEmpty(request.Email))
-        {
-            loanRequestList = loanRequestList.Where(x=>x.kycDetails.CustomerEmail == request.Email);
-        }
-        loanRequestList = loanRequestList.Where(x=>x.ApprovalWorkflow.ApprovalWorkflowApplicationRole.Any(x=>x.Hierarchy == request.Hierarchy));
-        
-        var pagedResult = await PaginationData.PaginateAsync(loanRequestList, request.PageNumber, request.ItemsPerPage);
+            if (string.IsNullOrEmpty(roleId))
+                return new Result<LoanRequestsWrapper>(ExceptionManager.Manage("Loan Request", "Role can not be specified"));
 
-        foreach (var loanRequest in loanRequestList)
-        {
-            GetLoanRequests loanRequestDto = (GetLoanRequests)loanRequest;
-            loanRequestDto.Statement = loanRequest.Customer.MbsBankStatement;
-            loanRequestDto.kycDetails = (GetkycDetailsDto)loanRequest.kycDetails;
-            loanRequestDto.LoanDetails = (GetLoanDetailsDto)loanRequest.LoanDetails;
-            loanRequestDto.SalaryDetails = (GetSalaryDetailsDto)loanRequest.SalaryDetails;
-            loanRequestDto.ApprovalWorkFlow = (ApprovalWorkflowDto)loanRequest.ApprovalWorkflow;
-            listOfLoanRequests.Add(loanRequestDto);
+            var listOfLoanRequests = new List<GetLoanRequests>();
+
+            IQueryable<LoanRequest> loanRequestList = Enumerable.Empty<LoanRequest>().AsQueryable();
+
+            loanRequestList = _trivistaDbContext.LoanRequest
+                .Include(x => x.Customer)
+                .Include(x => x.ApprovalWorkflow)
+                .ThenInclude(x => x.ApprovalWorkflowApplicationRole)
+                .OrderByDescending(x => x.Created)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (roleId != default)
+            {
+                loanRequestList = loanRequestList.Where(x => x.ApprovalWorkflow.ApprovalWorkflowApplicationRole.Any(x => x.RoleId == Guid.Parse(roleId)));
+            }
+            if (request.Status != null)
+            {
+                loanRequestList = loanRequestList.Where(x => x.LoanApplicationStatus == request.Status);
+            }
+            if (!string.IsNullOrEmpty(request.Email))
+            {
+                loanRequestList = loanRequestList.Where(x => x.kycDetails.CustomerEmail == request.Email);
+            }
+            loanRequestList = loanRequestList.Where(x => x.ApprovalWorkflow.ApprovalWorkflowApplicationRole.Any(x => x.Hierarchy == request.Hierarchy));
+
+            var pagedResult = await PaginationData.PaginateAsync(loanRequestList, request.PageNumber, request.ItemsPerPage);
+
+            foreach (var loanRequest in loanRequestList)
+            {
+                GetLoanRequests loanRequestDto = (GetLoanRequests)loanRequest;
+                loanRequestDto.Statement = loanRequest.Customer.MbsBankStatement;
+                loanRequestDto.kycDetails = (GetkycDetailsDto)loanRequest.kycDetails;
+                loanRequestDto.LoanDetails = (GetLoanDetailsDto)loanRequest.LoanDetails;
+                loanRequestDto.SalaryDetails = (GetSalaryDetailsDto)loanRequest.SalaryDetails;
+                loanRequestDto.ApprovalWorkFlow = (ApprovalWorkflowDto)loanRequest.ApprovalWorkflow;
+                listOfLoanRequests.Add(loanRequestDto);
+            }
+
+            wrapper.TotalApproved = listOfLoanRequests.Count(x => x.LoanApplicationStatus == "Approved");
+            wrapper.TotalPendingLoan = listOfLoanRequests.Count(x => x.LoanApplicationStatus == "Pending");
+            wrapper.TotalRejected = listOfLoanRequests.Count(x => x.LoanApplicationStatus == "Rejected");
+            wrapper.GetLoanRequests = new PaginationInfo<GetLoanRequests>(listOfLoanRequests,
+                                                                            pagedResult.CurrentPage,
+                                                                            pagedResult.PageSize,
+                                                                            pagedResult.TotalItems,
+                                                                            pagedResult.TotalPages);
+
+            return wrapper;
         }
-
-        wrapper.TotalApproved = listOfLoanRequests.Count(x => x.LoanApplicationStatus == "Approved");
-        wrapper.TotalPendingLoan = listOfLoanRequests.Count(x => x.LoanApplicationStatus == "Pending");
-        wrapper.TotalRejected = listOfLoanRequests.Count(x => x.LoanApplicationStatus == "Rejected");
-        wrapper.GetLoanRequests = new PaginationInfo<GetLoanRequests>(listOfLoanRequests, 
-                                                                        pagedResult.CurrentPage, 
-                                                                        pagedResult.PageSize, 
-                                                                        pagedResult.TotalItems, 
-                                                                        pagedResult.TotalPages);
-
-        return wrapper;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while getting loan requests");
+            return new Result<LoanRequestsWrapper>(ExceptionManager.Manage("Loan Request", "An error occured while getting loan requests"));
+        }
     }
 }

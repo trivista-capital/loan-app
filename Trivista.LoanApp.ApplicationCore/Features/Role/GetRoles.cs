@@ -17,6 +17,7 @@ public sealed class GetRoles: ICarterModule
     {
         app.MapPost("/roles", GetRolesHandler)
             .WithName("Get Role")
+            .RequireAuthorization()
             .WithTags("Role");
     }
 

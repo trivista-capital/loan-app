@@ -7,9 +7,11 @@
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <UserSecretsId>70bf96af-dc83-4315-942e-7e45895dddcd</UserSecretsId>
+		<PreserveCompilationContext>true</PreserveCompilationContext>
     </PropertyGroup>
 
     <ItemGroup>
+		<PackageReference Include="Coravel" Version="5.0.2" />
         <PackageReference Include="IdentityModel" Version="6.1.0" />
         <PackageReference Include="IdentityModel.AspNetCore" Version="4.3.0" />
         <PackageReference Include="IdentityServer4" Version="4.1.2" />
@@ -63,6 +65,10 @@
 
     <ItemGroup>
       <None Remove="Logs\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Email_Templates_Borrow_Ease\loan-due.html" />
     </ItemGroup>
 
     <ItemGroup>

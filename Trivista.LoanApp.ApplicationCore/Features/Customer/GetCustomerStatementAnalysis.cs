@@ -24,6 +24,7 @@ public class GetCustomerStatementAnalysisController: ICarterModule
     {
         app.MapGet("/getCustomerStatementAnalysis/{customerId}", GetMbsStatementHandler)
             .WithName("Get Statement analysis")
+            .RequireAuthorization()
             .WithTags("Admin");
     }
     

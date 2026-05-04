@@ -21,6 +21,7 @@ public class GetCustomerProofOfPaymentController: ICarterModule
     {
         app.MapGet("/loanRequests/ProofOfPayment/{id}", HandleProofOfPaymentRequest)
             .WithName("ProofOfPayment")
+            .RequireAuthorization()
             .WithTags("Loan Request");
     }
     

@@ -8,8 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
+using Trivista.LoanApp.ApplicationCore.Enums;
 using Trivista.LoanApp.ApplicationCore.Exceptions;
 using Trivista.LoanApp.ApplicationCore.Extensions;
+using Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
 
 namespace Trivista.LoanApp.ApplicationCore.Features.Customer;
 
@@ -47,12 +49,14 @@ public sealed record AddCustomerCommandHandler : IRequestHandler<AddCustomerComm
 {
     private readonly TrivistaDbContext _trivistaDbContext;
     private readonly ILogger<AddCustomerCommandHandler> _logger;
-    public AddCustomerCommandHandler(TrivistaDbContext trivistaDbContext, ILogger<AddCustomerCommandHandler> logger)
+    private readonly IRemittaService _remittaService;
+    public AddCustomerCommandHandler(TrivistaDbContext trivistaDbContext, ILogger<AddCustomerCommandHandler> logger, IRemittaService remittaService)
     {
         _trivistaDbContext = trivistaDbContext;
         _logger = logger;
+        _remittaService = remittaService;
     }
-    
+
     public async Task<Result<bool>> Handle(AddCustomerCommand request, CancellationToken cancellationToken)
     {
         var validator = new AddCustomerValidation();
@@ -62,7 +66,14 @@ public sealed record AddCustomerCommandHandler : IRequestHandler<AddCustomerComm
             return exceptionResult;
         var customer = Entities.Customer.Factory.Build(request.Id, request.FirstName, request.LastName, request.Email,
                                         request.PhoneNumber, request.Sex, request.PhoneNumber, request.RoleId.ToString(), request.UserType)
-                                        .SetMiddleName(request.MiddleName).SetAddress(request.Address);
+                                        .SetMiddleName(request.MiddleName).SetAddress(request.Address)
+                                        .SetCustomerRemittance(new Entities.ValueObjects.CustomerRemitterInformation()
+                                        {
+                                            IsRemittaUser = RemittaUser.NotDetermined.ToString(),
+                                            OtherLoansCollected = 0,
+                                            AverageSixMonthsSalary = 0,
+                                        });
+
         await _trivistaDbContext.Customer.AddAsync(customer, cancellationToken);
         await _trivistaDbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Customer with Id: {RequestId} created successfully", request.Id);

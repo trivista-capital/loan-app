@@ -28,8 +28,8 @@ public class TrivistaDbContext: DbContext
     public DbSet<Transaction> Transaction { get; set; }
     public DbSet<Ticket> Ticket { get; set; }
     public DbSet<TicketMessages> TicketMessage { get; set; }
-
     public DbSet<FailedRemitaDisbursement> FailedRemitaDisbursement { get; set; }
+    public DbSet<ClientApiKeyConfiguration> ClientApiKey { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

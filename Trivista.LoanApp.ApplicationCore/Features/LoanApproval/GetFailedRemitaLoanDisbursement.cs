@@ -1,10 +1,10 @@
-using System.Data.Entity;
 using Carter;
 using LanguageExt.Common;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Entities;
 using Trivista.LoanApp.ApplicationCore.Extensions;
@@ -17,6 +17,7 @@ public class GetFailedRemitaLoanDisbursementController: ICarterModule
     {
         app.MapGet("/disbursement/remita/failedRemitaDisbursement", GetFailedRemitaLoanDisbursementHandler)
             .WithTags("Remita")
+            .RequireAuthorization()
             .WithName("Failed Disbursement");
     }
 
@@ -62,6 +63,7 @@ public record GetAllFailedRemitaLoanDisbursementQueryHandler : IRequestHandler<G
     
     public async Task<Result<List<FailedRemitaLoanDisbursementDto>>> Handle(GetAllFailedRemitaLoanDisbursementQuery request, CancellationToken cancellationToken)
     {
+
         var result = await _trivistaDbContext.FailedRemitaDisbursement.AsNoTracking().ToListAsync(cancellationToken);
 
         var disbursementDto = result.Select(x => (FailedRemitaLoanDisbursementDto)x).ToList();

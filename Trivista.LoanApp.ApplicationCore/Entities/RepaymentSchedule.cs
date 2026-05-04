@@ -42,6 +42,10 @@ public sealed class RepaymentSchedule: BaseEntity<Guid>
 
     public bool IsDue { get; set; }
 
+    public string Recover { get; set; }
+
+    public bool IsRecovered { get; set; }
+
     public ICollection<FailedPaymentAttempts> FailedPaymentAttempts { get; set; }
 
     public class Factory
@@ -59,6 +63,18 @@ public sealed class RepaymentSchedule: BaseEntity<Guid>
     public RepaymentSchedule UpdateRepaymentStatus()
     {
         Status = ScheduleStatus.Paid;
+        return this;
+    }
+
+    public RepaymentSchedule SetRecover()
+    {
+        IsRecovered = true;
+        return this;
+    }
+
+    public RepaymentSchedule SetRecoveredDetails(string recoverDetails)
+    {
+        Recover = recoverDetails;
         return this;
     }
 
