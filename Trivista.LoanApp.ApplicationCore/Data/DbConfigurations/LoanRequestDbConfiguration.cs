@@ -13,6 +13,8 @@ public class LoanRequestDbConfiguration: IEntityTypeConfiguration<LoanRequest>
         builder.Property(x => x.DateLoanDisbursed).HasColumnType("datetime2(7)");
         builder.Property(x => x.DateLoanPaid).HasColumnType("datetime2(7)");
         builder.Property(x => x.Interest).HasColumnType("decimal(18, 2)");
+        builder.Property(x => x.IsMandateDirectDebitApproved);
+        builder.Property(x => x.MandateDirectDebitApproval).HasColumnType("nvarchar(3000)").IsRequired(false);
         //Kyc details config
         builder.OwnsOne(x => x.kycDetails).Property(x=>x.CustomerFirstName).HasColumnType("nvarchar(100)");
         builder.OwnsOne(x => x.kycDetails).Property(x => x.CustomerMiddleName).HasColumnType("nvarchar(100)");

@@ -14,4 +14,9 @@ public sealed class EnumHelpers
     {
         return (T)Enum.Parse(typeof(T), value, true);
     }
+
+    public static bool IsStringValidGuid(string? guidInput)
+    {
+        return Guid.TryParse(guidInput, out var validGuid) && Guid.Empty != validGuid;
+    }
 }

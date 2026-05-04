@@ -19,6 +19,7 @@ public sealed class GetCustomerPersonalDetailsController: ICarterModule
     {
         app.MapPost("/getCustomerPersonalDetails", GetCustomerPersonalDetailsHandler)
             .WithName("GetCustomerPersonalDetails")
+            .RequireAuthorization()
             .WithTags("Name Verification");
     }
 

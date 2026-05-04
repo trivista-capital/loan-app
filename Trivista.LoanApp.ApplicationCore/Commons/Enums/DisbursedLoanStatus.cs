@@ -9,5 +9,6 @@ public enum DisbursedLoanStatus
     WrittenOff = 4,
     DefaultingLoan = 5,
     MaturedLoan = 6,
-    None = 7
+    ProviderInsufficientFunds = 7,
+    None = 8
 }

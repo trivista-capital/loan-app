@@ -18,6 +18,7 @@ public static class IOptionsConfiguration
         services.Configure<RemittaOption>(configuration.GetSection("RemittaOption"));
         services.Configure<MbsOption>(configuration.GetSection("MbsOption"));
         services.Configure<IndicinaOption>(configuration.GetSection("IndicinaOption"));
+        services.AddOptions<SendGridOption>().BindConfiguration(nameof(SendGridOption));
         return services;
     }
 }

@@ -18,6 +18,7 @@ public class GetActiveLoanConfigurationController: ICarterModule
     {
         app.MapGet("/getActiveLoanConfiguration", GetActiveGetLoanConfigurationHandler)
             .WithName("GetActiveLoanConfiguration")
+            .RequireAuthorization()
             .WithTags("Loan Configuration");
     }
 

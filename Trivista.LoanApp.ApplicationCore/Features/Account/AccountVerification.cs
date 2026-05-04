@@ -21,6 +21,7 @@ public class AccountVerificationController: ICarterModule
         app.MapGet("/customer/{accountNumber}/{bankCode}", AccountVerificationHandler)
             .WithName("Account Verification")
             .WithTags("Customer")
+            .RequireAuthorization()
             .RequireAuthorization();
     }
 

@@ -21,6 +21,7 @@ public sealed class ConfigureLoanController: ICarterModule
     {
         app.MapPost("/configureLoan", HandleLoanConfiguration)
             .WithName("ConfigureLoan")
+            .RequireAuthorization()
             .WithTags("Loan Configuration");
     }
 

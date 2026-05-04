@@ -24,17 +24,10 @@ public sealed class LoanRequestController: ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        try
-        {
-            app.MapPost("/requestLoan", HandleRequestLoan)
-           .WithName("RequestLoan")
-           .WithTags("Loan Request");
-           //.RequireAuthorization();
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        app.MapPost("/requestLoan", HandleRequestLoan)
+       .WithName("RequestLoan")
+       .WithTags("Loan Request");
+       //.RequireAuthorization();
     }
     
     private async Task<IResult> HandleRequestLoan(IMediator mediator, [FromBody]RequestLoanCommand model)
@@ -188,7 +181,7 @@ public sealed record RequestLoanCommand(Guid CustomerId,
                     LoanDetailsDto LoanDetails, 
                     SalaryDetailsDto SalaryDetails, 
                     ProofOfAddressDto ProofOfAddressDto, 
-                    bool IsRemita) : IRequest<Result<bool>>;
+                    string IsRemita) : IRequest<Result<bool>>;
 
 public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanCommand, Result<bool>>
 {
@@ -209,8 +202,22 @@ public sealed class RequestLoanCommandHandler : IRequestHandler<RequestLoanComma
                 .ManageException<bool>(validator, request, cancellationToken, true);
             if (!exceptionResult.IsSuccess)
                 return exceptionResult;
-            
-            var doesCustomerHaveAnyLoan = await _trivistaDbContext.LoanRequest
+
+        var doesBvnExistInLoan = await _trivistaDbContext.LoanRequest
+            .Include(x => x.kycDetails)
+                                 .AsNoTracking()
+                                 .Where(x => x.CustomerId == request.CustomerId &&
+                                 x.Bvn.Trim().ToLower() == request.Bvn.Trim().ToLower() &&
+                                 x.kycDetails.CustomerEmail.Trim().ToLower() 
+                                 != request.kycDetails.CustomerEmail.Trim().ToLower())
+                                 .Select(x => x)
+                                 .AnyAsync(cancellationToken);
+       if (doesBvnExistInLoan)
+        {
+            return new Result<bool>(ExceptionManager.Manage("Loan Request", "Email is not your recognozed email."));
+        }
+
+        var doesCustomerHaveAnyLoan = await _trivistaDbContext.LoanRequest
                                                  .AsNoTracking()
                                                  .Where(x => x.CustomerId == request.CustomerId)
                                                  .Select(x => x)

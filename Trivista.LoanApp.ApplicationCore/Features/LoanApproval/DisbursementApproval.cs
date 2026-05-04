@@ -10,10 +10,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Trivista.LoanApp.ApplicationCore.Commons.Enums;
+using Trivista.LoanApp.ApplicationCore.Commons.Helpers;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Entities;
+using Trivista.LoanApp.ApplicationCore.Enums;
 using Trivista.LoanApp.ApplicationCore.Exceptions;
 using Trivista.LoanApp.ApplicationCore.Extensions;
+using Trivista.LoanApp.ApplicationCore.Features.Dto;
 using Trivista.LoanApp.ApplicationCore.Infrastructure.Http;
 using Trivista.LoanApp.ApplicationCore.Services.Payment;
 
@@ -25,8 +28,8 @@ public class DisbursementApprovalController: ICarterModule
     {
         app.MapPost("/disbursement/approval/{id}", FinalLoanApproveHandler)
             .WithName("Loan disbursement By Admin")
-            .WithTags("Admin");
-        //.RequireAuthorization();
+            .WithTags("Admin")
+        .RequireAuthorization();
     }
 
     private static async Task<IResult> FinalLoanApproveHandler(IMediator mediator, Guid id, [FromBody]Approval command)
@@ -63,12 +66,15 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
 
     private readonly IRemittaService _remittaService;
 
+    private readonly TokenManager _token;
+
     public DisbursementApprovalCommandHandler(TrivistaDbContext trivistaDbContext,
         ILogger<DisbursementApprovalCommandHandler> logger,
         IPayStackService payStackService,
         IPublisher publisher,
         IMbsService mbsService,
-        IRemittaService remittaService)
+        IRemittaService remittaService,
+        TokenManager token)
     {
         _trivistaDbContext = trivistaDbContext;
         _logger = logger;
@@ -76,10 +82,21 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         _publisher = publisher;
         _mbsService = mbsService;
         _remittaService = remittaService;
+        _token = token;
     }
 
     public async Task<Result<Unit>> Handle(DisbursementApprovalCommand request, CancellationToken cancellationToken)
     {
+        var userId = _token.GetUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            _logger.LogWarning("Customer id is null");
+            return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "Approver is not known. Please logout and try again, else contact the admin"));
+        }
+        var customer = await _trivistaDbContext.
+            Customer.
+            AsNoTracking().
+            Where(x => x.Id == Guid.Parse(userId)).FirstOrDefaultAsync();
         var validator = new DisbursementApprovalCommandValidation();
         var exceptionResult = await TrivistaValidationException<DisbursementApprovalCommandValidation, DisbursementApprovalCommand>
             .ManageException<Unit>(validator, request, cancellationToken, Unit.Value);
@@ -103,58 +120,71 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
             .Where(x => x.Id == approval.LoanRequestId)
             .Select(x => x)
             .FirstOrDefaultAsync(cancellationToken);
-        
+
         var transaction = Transaction.Factory.Build(Guid.NewGuid(), approval.TransactionReference, approval.LoanRequest.LoanDetails.LoanAmount,
                 "", RepaymentStatus.Unpaid, true, TransactionType.Disbursement, approval.LoanRequest.Id)
             .SetCustomer(approval.LoanRequest.Customer);
         
-        var (disbursementResult, _) = await InitiateRemitaDisbursement(loanRequest!);
+        if(approval.LoanRequest.Customer.CustomerRemitterInformation.IsRemittaUser 
+            == RemittaUser.IsRemittaUser.ToString())
+        {
+            var (disbursementResult, _) = await InitiateRemitaDisbursement(loanRequest!);
 
-        if (disbursementResult!.Status != "00")
-            return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "Unable to disburse loan to customer"));
-        
+            if (disbursementResult!.Status != "00")
+                return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "Unable to disburse loan to customer"));
+        }
+
         loanRequest!.SetLoanDisbursedStatus();
         
         _trivistaDbContext.LoanRequest.Update(loanRequest);
-        
-        await _trivistaDbContext.Transaction.AddAsync(transaction, cancellationToken);
-        
-        var saveChanges = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
-        
-        if (saveChanges <= 0)
-            return new Result<Unit>(ExceptionManager.Manage("Loan Approval",
-                "Unable to approve loan, please try again later"));
-        
-        var roleId = loanRequest.ApprovalWorkflow.ApprovalWorkflowApplicationRole.FirstOrDefault()!.RoleId;
-        
-        var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == roleId.ToString()).Select(x => x).FirstOrDefaultAsync(cancellationToken);
-        
-        await _publisher.Publish(new LoanDisbursedEvent()
-        {
-            AdminName = $"{staff?.FirstName} {staff!.LastName}",
-            AdminEmail = staff!.Email,
-            CustomerName = $"{approval.LoanRequest.Customer!.FirstName} {approval.LoanRequest.Customer.LastName}",
-            InterestRate = approval.LoanRequest.Interest,
-            LoanAmount = approval.LoanRequest.LoanDetails.LoanAmount,
-            LoanTenure = approval.LoanRequest.LoanDetails.tenure,
-            RepaymentScheduleType = approval.LoanRequest.RepaymentSchedules.FirstOrDefault()!.RepaymentType.ToString()
-        }, cancellationToken);
-        
+
         var account = await _payStackService.FinalizeTransfer(new FinalTransferRequestDto()
         {
             Otp = request.Command.Otp,
             TransferCode = approval.TransferCode
         });
-        
+
         if (account.Status)
-            return new Result<Unit>(ExceptionManager.Manage("Loan Approval",
-                account.Message));
-        
-        approval.SetOtp(request.Command.Otp);
-        
-        approval.ApproveLoan();
-        
-        return Unit.Value;
+        {
+            approval.SetOtp(request.Command.Otp);
+
+            approval.ApproveLoan();
+
+            await _trivistaDbContext.Transaction.AddAsync(transaction, cancellationToken);
+
+            var doesApprovalExist = await _trivistaDbContext.DisbursementApproval.AsNoTracking().
+                Where(x => x.LoanRequestId == loanRequest.Id && x.Status == DisbursedLoanStatus.Disbursed).
+                Select(x => x).FirstOrDefaultAsync(cancellationToken);
+            if (doesApprovalExist != null)
+            {
+                _trivistaDbContext.DisbursementApproval.Remove(doesApprovalExist);
+            }
+
+            var saveChanges = await _trivistaDbContext.SaveChangesAsync(cancellationToken);
+
+            if (saveChanges <= 0)
+                return new Result<Unit>(ExceptionManager.Manage("Loan Approval",
+                    "Unable to approve loan, please try again later"));
+
+            var roleId = loanRequest.ApprovalWorkflow.ApprovalWorkflowApplicationRole.FirstOrDefault()!.RoleId;
+
+            var staff = await _trivistaDbContext.Customer.Where(x => x.RoleId == roleId.ToString()).Select(x => x).FirstOrDefaultAsync(cancellationToken);
+
+            await _publisher.Publish(new LoanDisbursedEvent()
+            {
+                AdminName = $"{staff?.FirstName} {staff!.LastName}",
+                AdminEmail = staff!.Email,
+                CustomerName = $"{approval.LoanRequest.Customer!.FirstName} {approval.LoanRequest.Customer.LastName}",
+                InterestRate = approval.LoanRequest.Interest,
+                LoanAmount = approval.LoanRequest.LoanDetails.LoanAmount,
+                LoanTenure = approval.LoanRequest.LoanDetails.tenure,
+                RepaymentScheduleType = approval.LoanRequest.RepaymentSchedules.FirstOrDefault()!.RepaymentType.ToString()
+            }, cancellationToken);
+
+            return Unit.Value;
+        }
+
+        return new Result<Unit>(ExceptionManager.Manage("Loan Approval", account.Message));
     }
 
     private async Task<(LoanDisbursementResponseDto?, string)> InitiateRemitaDisbursement(LoanRequest  loanRequest)
@@ -164,75 +194,85 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         var dateOfCollection = loanRequest.RepaymentSchedules.OrderBy(x => x.DueDate).Select(x => x.DueDate)
             .FirstOrDefault().ToString("dd-MM-yyyy HH:mm:ss") + "+0000";
         
-        var remitaMandateResponse = await _remittaService.SalaryHistory(new GetSalaryHistoryRequestDto()
+        if(loanRequest.Customer.CustomerRemitterInformation.IsRemittaUser == RemittaUser.IsRemittaUser.ToString())
         {
-            FirstName = loanRequest.Customer.FirstName,
-            LastName = loanRequest.Customer.LastName,
-            MiddleName = loanRequest.Customer.MiddleName,
-            AccountNumber = loanRequest.SalaryDetails.SalaryAccountNumber,
-            BankCode = loanRequest.SalaryDetails.BankCode,
-            Bvn = loanRequest.Customer.Bvn
-        }, Guid.NewGuid().ToString());
-
-        if(remitaMandateResponse == null || !remitaMandateResponse.HasData || remitaMandateResponse.Status.ToUpper() != "success".ToUpper())
-        {
-            _logger.LogError("Unable to get response from remita service in CheckRemitaStatusHandler");
-            return (new LoanDisbursementResponseDto(), "");
-        }
-        
-        _logger.LogInformation("Building the LoanDisbursementRequestDto");
-        var request = new LoanDisbursementRequestDto()
-        {
-            CustomerId = remitaMandateResponse.Data.CustomerId,
-            PhoneNumber = loanRequest.Customer.PhoneNumber,
-            AccountNumber = loanRequest.SalaryDetails.SalaryAccountNumber,
-            Currency = "NGN",
-            LoanAmount = loanRequest.LoanDetails.LoanAmount,
-            CollectionAmount = loanRequest.RepaymentSchedules.OrderBy(x => x.DueDate).Select(x => x.RepaymentAmount).FirstOrDefault(),
-            DateOfDisbursement = dateOfDisbursement,
-            DateOfCollection = dateOfCollection,
-            TotalCollectionAmount = loanRequest.RepaymentSchedules.Sum(x => x.RepaymentAmount),
-            NumberOfRepayments = loanRequest.RepaymentSchedules.Count,
-            BankCode = loanRequest.SalaryDetails.BankCode
-        };
-        _logger.LogInformation("Remita disbursement payload is: {Payload}", JsonConvert.SerializeObject(request));
-        _logger.LogInformation("Calling remita DisburseLoan service");
-        var disbursement = await _remittaService.DisburseLoan(request);
-       
-        _logger.LogInformation("Called remita DisburseLoan service");
-        if (disbursement != null)
-        {
-            _logger.LogInformation("disbursement object from remita service is not null");
-            if(disbursement.Message.ToLower() != "Successful".ToLower() && disbursement.Status != "00")
+            var remitaMandateResponse = await _remittaService.SalaryHistory(new GetSalaryHistoryRequestDto()
             {
-                _logger.LogInformation("disbursement is not successful");
+                FirstName = loanRequest.Customer.FirstName,
+                LastName = loanRequest.Customer.LastName,
+                MiddleName = loanRequest.Customer.MiddleName,
+                AccountNumber = loanRequest.SalaryDetails.SalaryAccountNumber,
+                BankCode = loanRequest.SalaryDetails.BankCode,
+                Bvn = loanRequest.Customer.Bvn
+            }, Guid.NewGuid().ToString());
+
+            if (remitaMandateResponse == null || !remitaMandateResponse.HasData || remitaMandateResponse.Status.ToUpper() != "success".ToUpper())
+            {
+                _logger.LogError("Unable to get response from remita service in CheckRemitaStatusHandler");
+                return (new LoanDisbursementResponseDto(), "");
+            }
+
+            _logger.LogInformation("Building the LoanDisbursementRequestDto");
+            var request = new LoanDisbursementRequestDto()
+            {
+                CustomerId = remitaMandateResponse.Data.CustomerId,
+                PhoneNumber = loanRequest.Customer.PhoneNumber,
+                AccountNumber = loanRequest.SalaryDetails.SalaryAccountNumber,
+                Currency = "NGN",
+                LoanAmount = loanRequest.LoanDetails.LoanAmount,
+                CollectionAmount = loanRequest.RepaymentSchedules.OrderBy(x => x.DueDate).Select(x => x.RepaymentAmount).FirstOrDefault(),
+                DateOfDisbursement = dateOfDisbursement,
+                DateOfCollection = dateOfCollection,
+                TotalCollectionAmount = loanRequest.RepaymentSchedules.Sum(x => x.RepaymentAmount),
+                NumberOfRepayments = loanRequest.RepaymentSchedules.Count,
+                BankCode = loanRequest.SalaryDetails.BankCode
+            };
+            _logger.LogInformation("Remita disbursement payload is: {Payload}", JsonConvert.SerializeObject(request));
+            _logger.LogInformation("Calling remita DisburseLoan service");
+            var disbursement = await _remittaService.DisburseLoan(request);
+
+            _logger.LogInformation("Called remita DisburseLoan service");
+            if (disbursement != null)
+            {
+                _logger.LogInformation("disbursement object from remita service is not null");
+                if (disbursement.Message.ToLower() != "Successful".ToLower() && disbursement.Status != "00")
+                {
+                    _logger.LogInformation("disbursement is not successful");
+                    //Log to data base here for retry.
+                    var failedRemitaDisbursementObject = FailedRemitaDisbursement.Factory.Build(loanRequest.Id, JsonConvert.SerializeObject(request));
+
+                    await _trivistaDbContext.FailedRemitaDisbursement.AddAsync(failedRemitaDisbursementObject);
+
+                    await _trivistaDbContext.SaveChangesAsync();
+                    _logger.LogInformation("Saved failed response from remita");
+
+                    return (new LoanDisbursementResponseDto(), "");
+                }
+            }
+
+            if (disbursement == null)
+            {
+                _logger.LogInformation("Remita returned null");
                 //Log to data base here for retry.
                 var failedRemitaDisbursementObject = FailedRemitaDisbursement.Factory.Build(loanRequest.Id, JsonConvert.SerializeObject(request));
 
                 await _trivistaDbContext.FailedRemitaDisbursement.AddAsync(failedRemitaDisbursementObject);
 
                 await _trivistaDbContext.SaveChangesAsync();
-                _logger.LogInformation("Saved failed response from remita");
-                
+                _logger.LogInformation("Remita returned null and is saved in database");
+
                 return (new LoanDisbursementResponseDto(), "");
             }
+
+            _logger.LogInformation("Successful response from renita is: {RemitaDisbursement}", disbursement);
+            return (disbursement, "Successful");
         }
-
-        if (disbursement == null)
+        if (loanRequest.Customer.CustomerRemitterInformation.IsRemittaUser == RemittaUser.NotDetermined.ToString())
         {
-            _logger.LogInformation("Remita returned null");
-            //Log to data base here for retry.
-            var failedRemitaDisbursementObject = FailedRemitaDisbursement.Factory.Build(loanRequest.Id, JsonConvert.SerializeObject(request));
-
-            await _trivistaDbContext.FailedRemitaDisbursement.AddAsync(failedRemitaDisbursementObject);
-
-            await _trivistaDbContext.SaveChangesAsync();   
-            _logger.LogInformation("Remita returned null and is saved in database");
-            
+            _logger.LogError("Remitta user not determined in service in CheckRemitaStatusHandler");
             return (new LoanDisbursementResponseDto(), "");
         }
 
-        _logger.LogInformation("Successful response from renita is: {RemitaDisbursement}", disbursement);
-        return (disbursement, "Successful");
+        return (new LoanDisbursementResponseDto(), "");
     }
 }

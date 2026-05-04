@@ -19,6 +19,7 @@ public sealed class GetCustomerController: ICarterModule
         app.MapGet("/customers/Profile/{id}", GetCustomersHandler)
             .WithName("Get Customer Profile")
             .WithTags("Customer")
+            .RequireAuthorization()
             .RequireCors("AllowSpecificOrigins");
     }
 
@@ -56,7 +57,7 @@ public sealed record GetCustomerDto
 
     public string Location { get; set; }
 
-    public bool? IsRemittaUser { get; set; }
+    public string? IsRemittaUser { get; set; }
 
     public static explicit operator GetCustomerDto(Entities.Customer customer)
     {

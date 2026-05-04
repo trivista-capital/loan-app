@@ -20,6 +20,7 @@ public class EditCustomerInformation: ICarterModule
     {
         app.MapPost("/updateCustomer/{id}", UpdateCustomerHandler)
             .WithName("UpdateCustomer")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
 

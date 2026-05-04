@@ -1,12 +1,14 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 using Carter;
+using Coravel;
 using Microsoft.IdentityModel.Logging;
 using Serilog;
 using Trivista.LoanApp.Api.ServiceCollection;
 using Trivista.LoanApp.ApplicationCore.Commons.DIConfiguration;
 using Trivista.LoanApp.ApplicationCore.Commons.Helpers;
 using Trivista.LoanApp.ApplicationCore.Extensions;
+using Trivista.LoanApp.ApplicationCore.Features.BackgroundServices;
 
 
 // Add services to the container.
@@ -45,10 +47,19 @@ try
     builder.Services.ConfigureOptions();
     builder.ConfigureSerilog();
     builder.Services.AddSingleton<TokenManager>();
+    builder.AddSendGrid();
+    builder.Services.AddTransient<SendMailHostedService>();
+    builder.Services.AddScheduler();
 
     var app = builder.Build();
     app.MigrateDatabase();
     app.MapCarter();
+
+    app.Services.UseScheduler(scheduler =>
+    {
+        //scheduler.Schedule<SendMailHostedService>().DailyAt(10, 30).PreventOverlapping(nameof(SendMailHostedService));
+        scheduler.Schedule<SendMailHostedService>().EveryThirtySeconds().PreventOverlapping(nameof(SendMailHostedService));
+    });
 
     //Configure the HTTP request pipeline.
     app.MapSwagger();

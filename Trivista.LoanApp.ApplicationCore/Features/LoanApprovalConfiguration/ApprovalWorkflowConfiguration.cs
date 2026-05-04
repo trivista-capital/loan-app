@@ -23,6 +23,7 @@ public sealed class ApprovalWorkflowConfigurationController: ICarterModule
     {
          app.MapPost("/configureLoanApproval", HandleLoanApprovalConfiguration)
                     .WithName("Configure-Loan-Approval")
+                    .RequireAuthorization()
                     .WithTags("Loan Approval Configuration");
     }
     

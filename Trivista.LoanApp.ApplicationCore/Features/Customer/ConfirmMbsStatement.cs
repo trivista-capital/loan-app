@@ -24,6 +24,7 @@ public class ConfirmMbsStatementController: ICarterModule
     {
         app.MapPost("/confirmMbsStatement", ConfirmMbsStatementHandler)
             .WithName("Confirm Mbs Statement")
+            .RequireAuthorization()
             .WithTags("Customer");
     }
     
@@ -105,75 +106,78 @@ public sealed class ConfirmMbsStatementHandler : IRequestHandler<ConfirmMbsState
         {
             if (getFeedbackByRequestIdResponse.Status == "00")
             {
-                      await Task.Run( async () =>
-                      {
-                            var indicinaService = _serviceProvider.GetRequiredService<IIndicina>();
-                            var dbContext = _serviceProvider.GetRequiredService<TrivistaDbContext>();
-                            
-                            var customerToUpdate = await dbContext.Customer
-                                .FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
+                var indicinaService = _serviceProvider.GetRequiredService<IIndicina>();
+                var dbContext = _serviceProvider.GetRequiredService<TrivistaDbContext>();
 
-                            var jsonStatementResult = await _mbsService.GetStatementJSONObject(new GetStatementJSONObjectRequestDto()
+                var customerToUpdate = await dbContext.Customer
+                    .FirstOrDefaultAsync(x => x.Id == request.CustomerId, cancellationToken);
+
+                var jsonStatementResult = await _mbsService.GetStatementJSONObject(new GetStatementJSONObjectRequestDto()
+                {
+                    TicketNo = request.TicketNumber,
+                    Password = request.Password
+                });
+
+
+                if (jsonStatementResult.Status == "00")
+                {
+                    customerToUpdate!.SetMbsBankStatement(jsonStatementResult.Result);
+
+                    dbContext.Customer.Update(customerToUpdate);
+
+                    await dbContext.SaveChangesAsync(cancellationToken);
+
+                    _logger.LogInformation("Successful got statement from mbs and saved to db");
+
+                    _logger.LogInformation("Sending the statement to indiciina for processing");
+                    //Sending the statement to indiciina for processing
+                    var response = await indicinaService.ProcessStatement(new BankStatementRequest()
+                    {
+                        Customer = new()
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            Email = customerToUpdate.Email,
+                            FirstName = customerToUpdate.FirstName,
+                            LastName = customerToUpdate.LastName,
+                            Phone = customerToUpdate.PhoneNumber
+                        },
+                        BankStatement = new()
+                        {
+                            Type = "mbs",
+                            Content = new()
                             {
-                                TicketNo = request.TicketNumber,
-                                Password = request.Password
-                            });
-                            
-                            //_logger.LogInformation();
-                            
-                            if (jsonStatementResult.Status == "00")
-                            {
-                                customerToUpdate!.SetMbsBankStatement(jsonStatementResult.Result);
-
-                                dbContext.Customer.Update(customerToUpdate);
-                                
-                                await dbContext.SaveChangesAsync(cancellationToken);
-                                
-                                _logger.LogInformation("Successful got statement from mbs and saved to db");
-                                
-                                var response = await indicinaService.ProcessStatement(new BankStatementRequest()
-                                {
-                                    Customer = new()
-                                    {
-                                        Id = Guid.NewGuid().ToString(),
-                                        Email = customerToUpdate.Email,
-                                        FirstName = customerToUpdate.FirstName,
-                                        LastName = customerToUpdate.LastName,
-                                        Phone = customerToUpdate.PhoneNumber
-                                    },
-                                    BankStatement = new()
-                                    {
-                                        Type = "mbs",
-                                        Content = new()
-                                        {
-                                            Message = "Successful",
-                                            Result = jsonStatementResult.Result,
-                                            Status = "00"
-                                        }
-                                    }
-                                });
-
-                                if (string.IsNullOrEmpty(response.Data))
-                                {
-                                    _logger.LogInformation(response.FailedRequestContent.Message);
-                                    return;
-                                }
-                                
-                                customerToUpdate.SetBankStatementAnalysis(JsonConvert.SerializeObject(response.Data));
-
-                                dbContext.Customer.Update(customerToUpdate);
-                                
-                                await dbContext.SaveChangesAsync(cancellationToken);
-                                
-                                _logger.LogInformation("Successful analysis from indicina and saved to db");
+                                Message = "Successful",
+                                Result = jsonStatementResult.Result,
+                                Status = "00"
                             }
-                            else
-                            {
-                                _logger.LogInformation("Response from jsonStatement is: {Message}", jsonStatementResult.Message);
-                            }
-                      }, cancellationToken);   
-                        
-                      _logger.LogInformation("Successfully processed JsonStatement with Indicina");
+                        }
+                    });
+
+                    if (string.IsNullOrEmpty(response.Data))
+                    {
+                        _logger.LogInformation(response.Failed.Message);
+                        return new Result<(ConfirmStatementResponseDto, GetFeedbackByRequestIDResponseDto)>(
+                                  ExceptionManager.Manage("Statement", "An error occured, please communicate with the support team"));
+                    }
+
+                    _logger.LogInformation("Sent the statement to indiciina for processing");
+
+                    customerToUpdate.SetBankStatementAnalysis(JsonConvert.SerializeObject(response.Data));
+
+                    _logger.LogInformation("Updating the database");
+
+                    dbContext.Customer.Update(customerToUpdate);
+
+                    await dbContext.SaveChangesAsync(cancellationToken);
+
+                    _logger.LogInformation("Successful analysis from indicina and saved to db");
+                }
+                else
+                {
+                    _logger.LogInformation("Response from jsonStatement is: {Message}", jsonStatementResult.Message);
+                }
+
+                _logger.LogInformation("Successfully processed JsonStatement with Indicina");
             }
             else
             {

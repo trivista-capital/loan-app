@@ -19,6 +19,7 @@ public class GetLoansReadyForDisbursement: ICarterModule
     {
         app.MapGet("/loans/getLoansForDisbursement", GetLoansForDisbursementHandler)
             .WithName("Get Loans For Disbursement")
+            .RequireAuthorization()
             .WithTags("Admin");
     }
 

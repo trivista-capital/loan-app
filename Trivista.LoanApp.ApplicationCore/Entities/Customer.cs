@@ -79,7 +79,7 @@ public sealed class Customer: BaseEntity<Guid>
         return this;
     }
     
-    public Customer IsRemittaUser(bool isRemita)
+    public Customer IsRemittaUser(string isRemita)
     {
         this.CustomerRemitterInformation.IsRemittaUser = isRemita;
         return this;

@@ -17,6 +17,7 @@ public sealed class EditLoanConfigurationController: ICarterModule
     {
         app.MapPost("editLoanConfiguration/{id}", EditLoanConfigurationHandler)
             .WithName("EditLoanConfiguration")
+            .RequireAuthorization()
             .WithTags("Loan Configuration");
     }
 

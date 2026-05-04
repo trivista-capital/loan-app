@@ -9,20 +9,28 @@ public static class PaginationData
         int page,
         int pageSize)
     {
-        if (pageSize < 1)
-            pageSize = 10;
+		try
+		{
+            if (pageSize < 1)
+                pageSize = 10;
 
-        var totalItems = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        if (page > totalPages)
-            page = totalPages;
+            if (page > totalPages)
+                page = totalPages;
 
-        if (page < 1)
-            page = 1;
-        
-        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            if (page < 1)
+                page = 1;
 
-        return new PaginationInfo<T>(items, page, pageSize, totalItems, totalPages);
+            var items = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            return new PaginationInfo<T>(items, page, pageSize, totalItems, totalPages);
+        }
+		catch (Exception)
+		{
+
+			throw;
+		}
     }
 }

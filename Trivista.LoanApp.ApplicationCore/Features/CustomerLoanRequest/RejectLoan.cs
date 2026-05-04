@@ -19,6 +19,7 @@ public class RejectLoanController: ICarterModule
     {
         app.MapPost("/rejectLoan/{id}", HandleLoanRejection)
             .WithName("RejectLoan")
+            .RequireAuthorization()
             .WithTags("Loan Request");
     }
     
