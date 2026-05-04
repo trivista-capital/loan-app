@@ -20,12 +20,11 @@ namespace Trivista.LoanApp.ApplicationCore.Features.Dto
         public decimal TotalRepaymentExpected { get; set; } = default!;
         public int LoanTenure { get; set; } = default!;
         public string LinkedAccountNumber { get; set; } = default!;
-        public string RepaymentType { get; set; } = "Recovery"!;
+        public string RepaymentType { get; set; } = "collection"!;
         public string PreferredRepaymentBankCBNCode { get; set; } = default!;
         public string PreferredRepaymentAccount { get; set; } = default!;
-        public List<CollectionPaymentSchedule> CollectionPaymentSchedules { get; set; } = 
+        public List<CollectionPaymentSchedule> CollectionPaymentSchedules { get; set; } =
             new List<CollectionPaymentSchedule>();
-        public List<Guarantor> Guarantors { get; set; } = new List<Guarantor>();
     }
 
     public class RecovaResponse

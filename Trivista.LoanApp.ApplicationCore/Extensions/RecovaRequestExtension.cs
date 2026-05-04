@@ -13,8 +13,7 @@ namespace Trivista.LoanApp.ApplicationCore.Extensions
         public static RecovaRequest ToRecovaRequest(
             this Customer customer, 
             LoanRequest request, 
-            string bankCode,
-            List<Guarantor> guarantors)
+            string bankCode)
         {
             return new RecovaRequest()
             {
@@ -36,8 +35,7 @@ namespace Trivista.LoanApp.ApplicationCore.Extensions
                 {
                     RepaymentAmountInNaira = x.Amount,
                     RepaymentDate = x.DueDate.ToShortDateString()
-                }).ToList(),
-                Guarantors = guarantors,
+                }).ToList()
             };
         }
     }

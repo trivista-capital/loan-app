@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using Trivista.LoanApp.ApplicationCore.Commons.Enums;
@@ -55,7 +56,11 @@ public sealed class LoanRequest: BaseEntity<Guid>
     public Customer Customer { get; private set; }
     public Guid ApprovalWorkflowId { get; set; }
     public ApprovalWorkflow ApprovalWorkflow { get; set; }
-    public ICollection<RepaymentSchedule> RepaymentSchedules { get; set; } = new List<RepaymentSchedule>();
+    public bool IsMandateDirectDebitApproved { get; set; }
+
+    public string MandateDirectDebitApproval { get; set; }
+
+    public List<RepaymentSchedule> RepaymentSchedules { get; set; } = new List<RepaymentSchedule>();
 
     private List<object> Events { get; set; }
 
@@ -141,6 +146,18 @@ public sealed class LoanRequest: BaseEntity<Guid>
     public LoanRequest ApproveLoanByCustomer()
     {
         this.LoanApplicationStatus = LoanApplicationStatus.Active;
+        return this;
+    }
+
+    public LoanRequest SetDirectDebitCommand(string command)
+    {
+        this.MandateDirectDebitApproval = JsonConvert.SerializeObject(command);
+        return this;
+    }
+
+    public LoanRequest ApproveIsDirectDebitCommand()
+    {
+        this.IsMandateDirectDebitApproved = true;
         return this;
     }
 

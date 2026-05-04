@@ -15,6 +15,8 @@ public class LoanRequestRepaymentScheduleDbConfiguration: IEntityTypeConfigurati
         builder.Property(x => x.RepaymentType).HasConversion<string>().IsRequired(true);
         builder.Property(x => x.Status).HasConversion<string>().IsRequired(true);
         builder.Property(x => x.DueDate).IsRequired(true).HasColumnType("DateTime2");
+        builder.Property(x => x.IsRecovered);
+        builder.Property(x => x.Recover).IsRequired(false).HasMaxLength(3000);
         builder.Property(x => x.PaymentType).IsRequired(true).HasConversion<string>();
         builder.HasMany(x => x.FailedPaymentAttempts).WithOne(x => x.RepaymentSchedule)
             .HasForeignKey(x => x.RepaymentScheduleId).OnDelete(DeleteBehavior.Cascade);

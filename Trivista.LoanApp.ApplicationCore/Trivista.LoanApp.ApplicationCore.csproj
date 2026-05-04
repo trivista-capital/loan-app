@@ -11,26 +11,29 @@
       <Compile Remove="Features\HelpAndResources\**" />
       <Compile Remove="Features\LoanRepayment\**" />
       <Compile Remove="Features\Rewards\**" />
+      <Compile Remove="Logging\**" />
       <EmbeddedResource Remove="Features\Chat\**" />
       <EmbeddedResource Remove="Features\HelpAndResources\**" />
       <EmbeddedResource Remove="Features\LoanRepayment\**" />
       <EmbeddedResource Remove="Features\Rewards\**" />
+      <EmbeddedResource Remove="Logging\**" />
       <EntityDeploy Remove="Features\Chat\**" />
       <EntityDeploy Remove="Features\HelpAndResources\**" />
       <EntityDeploy Remove="Features\LoanRepayment\**" />
       <EntityDeploy Remove="Features\Rewards\**" />
+      <EntityDeploy Remove="Logging\**" />
       <None Remove="Features\Chat\**" />
       <None Remove="Features\HelpAndResources\**" />
       <None Remove="Features\LoanRepayment\**" />
       <None Remove="Features\Rewards\**" />
+      <None Remove="Logging\**" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="Data\Migrations" />
       <Folder Include="Events\IntegrationEvents" />
-      <Folder Include="Logging" />
+      <Folder Include="Features\ver\" />
       <Folder Include="Dto\" />
-      <Folder Include="Webhook" />
       <Folder Include="Features\Role\" />
     </ItemGroup>
 

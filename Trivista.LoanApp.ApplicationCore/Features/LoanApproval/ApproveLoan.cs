@@ -41,7 +41,7 @@ public sealed class ApproveLoan: ICarterModule
 
 public sealed record ApproveLoanCommand(Guid Id, decimal interestRate, decimal LoanAmount): IRequest<Result<Unit>>;
 
-public sealed record ApproveLoanCommandHandler: IRequestHandler<ApproveLoanCommand, Result<Unit>>
+public sealed class ApproveLoanCommandHandler: IRequestHandler<ApproveLoanCommand, Result<Unit>>
 {
     private readonly TrivistaDbContext _trivistaDbContext;
     

@@ -31,20 +31,22 @@ namespace Trivista.LoanApp.ApplicationCore.Infrastructure.Http
             _recovaOption = recovaOption.Value;
             _logger = logger;
         }
-        public async Task<RecovaResponse> CreateConsent(RecovaRequest input)
+        public async Task<RecovaResponse> CreateConsent(RecovaRequest request)
         {
             try
             {
-                var httpResult = await _client.GetAsync($"bank");
+                var serialized = JsonConvert.SerializeObject(request);
+                var body = new StringContent(serialized, Encoding.UTF8, "application/json");
+                var httpResult = await _client.PostAsync("CreateConsentRequest", body);
                 var result = await httpResult.Content.ReadAsStringAsync();
                 var deserializedResponse = JsonConvert.DeserializeObject<RecovaResponse>(result);
                 if (httpResult.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("Creation of Customer was pushed successfully wth response : {Response}", deserializedResponse);
-                    return deserializedResponse;
+                    _logger.LogInformation("Creation of consent for customer with name: {Customer} was successfully with response : {Response}", request.CustomerName, deserializedResponse);
+                    return deserializedResponse!;
                 }
-                _logger.LogInformation("Publishing of customer was not successful with message: {Message}", deserializedResponse);
-                return deserializedResponse;
+                _logger.LogInformation("Creation of consent for customer with name: {Customer} was not successful with message: {Message}", request.CustomerName, deserializedResponse);
+                return deserializedResponse!;
             }
             catch (Exception ex)
             {

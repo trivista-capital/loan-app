@@ -66,8 +66,6 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
 
     private readonly IRemittaService _remittaService;
 
-    private readonly IRecovaService _recovaService;
-
     private readonly TokenManager _token;
 
     public DisbursementApprovalCommandHandler(TrivistaDbContext trivistaDbContext,
@@ -76,7 +74,6 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         IPublisher publisher,
         IMbsService mbsService,
         IRemittaService remittaService,
-        IRecovaService recovaService,
         TokenManager token)
     {
         _trivistaDbContext = trivistaDbContext;
@@ -85,7 +82,6 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
         _publisher = publisher;
         _mbsService = mbsService;
         _remittaService = remittaService;
-        _recovaService = recovaService;
         _token = token;
     }
 
@@ -137,14 +133,7 @@ public sealed record DisbursementApprovalCommandHandler: IRequestHandler<Disburs
             if (disbursementResult!.Status != "00")
                 return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "Unable to disburse loan to customer"));
         }
-        else
-        {
-            var recovaRequest = customer!.ToRecovaRequest(loanRequest!, "", new List<Guarantor>());
-            var recovaResponse = await _recovaService.CreateConsent(recovaRequest);
-            if (recovaResponse!.RequestStatus != "Initiated")
-                return new Result<Unit>(ExceptionManager.Manage("Loan Approval", "Unable to disburse loan to customer"));
-        }
-        
+
         loanRequest!.SetLoanDisbursedStatus();
         
         _trivistaDbContext.LoanRequest.Update(loanRequest);
