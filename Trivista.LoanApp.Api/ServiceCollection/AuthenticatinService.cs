@@ -9,7 +9,7 @@ public static class AuthenticatinService
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.Authority = configuration.GetSection("IdentityOptions").GetSection("IdentityUrl").Value;
+                options.Authority = configuration.GetSection("IdentityOptions").GetSection("IdentityUrlWithoutSlash").Value;
                 options.Audience = "travisterApiLoanApi";
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new()
