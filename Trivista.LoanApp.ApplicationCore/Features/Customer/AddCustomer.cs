@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Trivista.LoanApp.ApplicationCore.Data.Context;
 using Trivista.LoanApp.ApplicationCore.Enums;
@@ -64,6 +65,12 @@ public sealed record AddCustomerCommandHandler : IRequestHandler<AddCustomerComm
             .ManageException<bool>(validator, request, cancellationToken, true);
         if (!exceptionResult.IsSuccess)
             return exceptionResult;
+        // User management retries this call from its outbox, so a customer that already exists is a success, not an error.
+        if (await _trivistaDbContext.Customer.AnyAsync(x => x.Id == request.Id, cancellationToken))
+        {
+            _logger.LogInformation("Customer with Id: {RequestId} already exists, nothing to add", request.Id);
+            return true;
+        }
         var customer = Entities.Customer.Factory.Build(request.Id, request.FirstName, request.LastName, request.Email,
                                         request.PhoneNumber, request.Sex, request.PhoneNumber, request.RoleId.ToString(), request.UserType)
                                         .SetMiddleName(request.MiddleName).SetAddress(request.Address)
